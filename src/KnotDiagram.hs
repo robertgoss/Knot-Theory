@@ -85,3 +85,24 @@ data KnotDiagram = KnotDiagram {
   edges :: IMap.IntMap Edge,
   regions :: IMap.IntMap Region
 }
+
+
+--Constructors
+
+--Planar Diagram
+--A helper type for a basic planar diagram for format see reference
+-- It is not assumed that the edges are enumerated in ascending order
+type PlanarDiagram = [(Int,Int,Int,Int)]
+
+--Construct a KnotDiagram from a given planar diagram. As not all 
+-- planar diagrams define valid knots the result is wrapped in a maybe
+fromPlanarDiagram :: PlanarDiagram -> Maybe KnotDiagram
+fromPlanarDiagram = undefined
+
+
+--Helper functions for constructing a knot diagram from a planar diagram
+
+-- Given a planar diagram constructs a map from vertices to the defined 
+-- crossings if this is possible.
+crossingsFromPlanarDiagram :: PlanarDiagram -> Maybe (IMap.IntMap Crossing)
+crossingsFromPlanarDiagram = undefined
