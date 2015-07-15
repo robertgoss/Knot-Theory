@@ -97,12 +97,22 @@ type PlanarDiagram = [(Int,Int,Int,Int)]
 --Construct a KnotDiagram from a given planar diagram. As not all 
 -- planar diagrams define valid knots the result is wrapped in a maybe
 fromPlanarDiagram :: PlanarDiagram -> Maybe KnotDiagram
-fromPlanarDiagram = undefined
-
-
+fromPlanarDiagram planarDiagram
+     | isNothing crossings' = Nothing
+     | otherwise = undefined
+  where  --Construct crossings from diagram with possibility of failure 
+         crossings' = crossingsFromPlanarDiagram planarDiagram
+         --Get crossings out of maybe for ease of use later 
+         -- Is safe as we guard against a nothing in the main function
+         -- Done for simplicity of further calls
+         crossings = fromJust crossings'
 --Helper functions for constructing a knot diagram from a planar diagram
 
 -- Given a planar diagram constructs a map from vertices to the defined 
 -- crossings if this is possible.
 crossingsFromPlanarDiagram :: PlanarDiagram -> Maybe (IMap.IntMap Crossing)
-crossingsFromPlanarDiagram = undefined
+crossingsFromPlanarDiagram pD = fmap IMap.fromList $ crossingAssocList
+  where  --Enumerate the crossings from 1 for the map 
+         crossingAssocList = fmap (zip [1..]) crossingList
+         --Construct crossings from diagram use mapM to join monads
+         crossingList = mapM crossingFromEdges pD
