@@ -1,0 +1,14 @@
+name:           Knots
+version:        0.1
+cabal-version:  >=1.2
+build-type:     Simple
+author:         robert
+
+library
+  hs-source-dirs:  src
+  build-depends:   
+                   base >= 4,
+                   containers
+  ghc-options:     -Wall
+  other-modules:   KnotDiagram
+
