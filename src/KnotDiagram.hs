@@ -3,6 +3,9 @@ module KnotDiagram where
 import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
 
+import Control.Applicative
+import Control.Arrow
+
 import Data.Maybe(fromJust,isNothing)
 
 --Helper types to indicate what the various indices refer to
@@ -47,14 +50,14 @@ crossingEdges (DoubleLoopR loop1 loop2) = [loop1,loop2,loop2,loop1]
 -- Can fail and return nothing if the loops/ edges given do not (locally)
 -- form a valid crossing
 crossingFromEdges :: (EdgeIndex,EdgeIndex,EdgeIndex,EdgeIndex) -> Maybe Crossing
-crossingFromEdges es@(e1,e2,e3,e4) --Switch on number of loops to save labourous checks in canonical case
+crossingFromEdges (e1,e2,e3,e4) --Switch on number of loops to save laborious checks in canonical case
     | distinctNum == 4 = Just $ Crossing e1 e2 e3 e4 --All edges distinct
-    | distinctNum == 3 = crossingFromSingleLoop es -- We have a single loop
-    | distinctNum == 2 = crossingFromDoubleLoop es -- We have a 2 loops
+    | distinctNum == 3 = crossingFromSingleLoop -- We have a single loop
+    | distinctNum == 2 = crossingFromDoubleLoop -- We have a 2 loops
     | otherwise = Nothing -- we have an impossible situation
   where distinctNum = Set.size $ Set.fromList [e1,e2,e3,e4]
         --We have a single loop find which quadrant we are in
-        crossingFromSingleLoop (e1,e2,e3,e4)
+        crossingFromSingleLoop
           | e1==e2 = Just $ LoopCrossingBL e1 e3 e4
           | e2==e3 = Just $ LoopCrossingTL e2 e1 e4
           | e3==e4 = Just $ LoopCrossingTR e3 e1 e2
@@ -62,7 +65,7 @@ crossingFromEdges es@(e1,e2,e3,e4) --Switch on number of loops to save labourous
           | otherwise = Nothing --An imposible local situation
         --We have a double loop check that they form correctly left or right
         --Check that they both form loops (not 3 of the same type etc)
-        crossingFromDoubleLoop (e1,e2,e3,e4)
+        crossingFromDoubleLoop
          | e1==e2 && e3==e4 = Just $ DoubleLoopL e1 e3
          | e1==e4 && e2==e3 = Just $ DoubleLoopR e1 e2
          | otherwise = Nothing -- An imposible local situation
@@ -134,7 +137,7 @@ fromPlanarDiagram planarDiagram
          -- Is safe as we guard against a nothing in the main function
          -- Done for simplicity of further calls
          crossings = fromJust crossings'
-         --Construct the basic oriented edges from crossings with posibility of failure
+         --Construct the basic oriented edges from crossings with possibility of failure
          -- Does not include region data yet
          basicEdgesOriented' = orientedEdgeBasicFromCrossings crossings
          --Get basicEdgeOriented  out of maybe for ease of use later 
@@ -146,7 +149,7 @@ fromPlanarDiagram planarDiagram
 -- Given a planar diagram constructs a map from vertices to the defined 
 -- crossings if this is possible.
 crossingsFromPlanarDiagram :: PlanarDiagram -> Maybe (IMap.IntMap Crossing)
-crossingsFromPlanarDiagram pD = fmap IMap.fromList $ crossingAssocList
+crossingsFromPlanarDiagram pD = IMap.fromList <$> crossingAssocList
   where  --Enumerate the crossings from 1 for the map 
          crossingAssocList = fmap (zip [1..]) crossingList
          --Construct crossings from diagram use mapM to join monads
@@ -178,12 +181,15 @@ edgeBasicFromCrossings crossings' = fmap IMap.fromList . mapM getBasicEdge  $ Se
 orientedEdgeBasicFromCrossings :: IMap.IntMap Crossing -> Maybe (IMap.IntMap OrientedEdgeBasic)
 orientedEdgeBasicFromCrossings crossings'
               | IMap.null crossings' = Just IMap.empty -- No crossings badly defined diagram
-              | IMap.size crossings'==1 = case snd $ IMap.findMin crossings' of --Only one crossing must be a double loop
+              --Only one crossing must be a double loop
+              | IMap.size crossings'==1 = case snd $ IMap.findMin crossings' of 
                                               (DoubleLoopL _ _) -> edgeMap'
                                               (DoubleLoopR _ _) -> edgeMap'
                                               _ -> Nothing
+              --Guard against an inability to form the unordered map.
               | isNothing edgeMap' = Nothing
-              | isNothing walk' = Nothing --Make sure walk is vaid
+              --Make sure walk is valid
+              | isNothing walk' = Nothing
               --Make sure all  edges are in oriented edge map
               | IMap.size edgeMap /= IMap.size orientedEdgeMap = Nothing
               | otherwise = Just orientedEdgeMap                              
@@ -217,7 +223,7 @@ orientedEdgeBasicFromCrossings crossings'
          --If walk exists we use to orient each edge that appears in it
          -- These oriented edges are added to the map along with loops (Which are oriented at crossing)
          walk = fromJust walk'
-         orientedProperEdges = IMap.fromList $ zip (map snd walk) (map orientedEdge walk)
+         orientedProperEdges = IMap.fromList $ map (snd &&& orientedEdge) walk
          --Given an edge and the index of the crossing it goes into orient the knot
          -- so this is second
          orientedEdge (crossingI,edgeI) = if c1==crossingI then (c2,c1) else (c1,c2)
