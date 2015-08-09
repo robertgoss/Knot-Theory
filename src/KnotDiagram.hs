@@ -3,8 +3,8 @@ module KnotDiagram where
 import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
 
-import Control.Applicative
-import Control.Arrow
+import Control.Applicative((<$>))
+import Control.Arrow((&&&))
 
 import Data.Maybe(fromJust,isNothing)
 
