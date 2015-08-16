@@ -7,6 +7,8 @@ import Data.List(foldl')
 import Control.Applicative((<$>))
 import Control.Arrow((&&&))
 
+import Debug.Trace(trace)
+
 import Data.Maybe(fromJust,isNothing)
 
 --Helper types to indicate what the various indices refer to
@@ -34,7 +36,7 @@ data Crossing = Crossing EdgeIndex EdgeIndex EdgeIndex EdgeIndex
                 -- A crossing that contains 2 loops the first contains
                 -- the incomming undercrossing edge right or left
                 -- indicate if the outgoing part of this edge if left or right
-                
+        deriving(Eq,Ord,Show)
                 
 --Helper function gets the 4 edges that meet at this crossing as a 4 element list
 -- Not done as a tuple for convenience later but may separate out.
@@ -103,11 +105,11 @@ nextProperEdgeIndex (DoubleLoopR _ _) _ = Nothing
 -- The 2 vertices which the edge is going from / to
 -- and the 2 regions that it borders on the left/right according to
 -- it's orientation.
-data Edge = Edge VertexIndex VertexIndex RegionIndex RegionIndex
+data Edge = Edge VertexIndex VertexIndex RegionIndex RegionIndex deriving(Eq,Ord,Show)
 
 --The type of information associated to an edge
 -- The list of edges that border this region organised clockwise.
-data Region = Region [EdgeIndex]
+data Region = Region [EdgeIndex] deriving(Eq,Ord,Show)
 
 --The basic type of a knot diagram
 -- Associates data to the crossings, edges and regions. 
@@ -115,7 +117,7 @@ data KnotDiagram = KnotDiagram {
   crossings :: IMap.IntMap Crossing,
   edges :: IMap.IntMap Edge,
   regions :: IMap.IntMap Region
-}
+} deriving(Eq,Ord,Show)
 
 
 --Constructors
@@ -157,7 +159,7 @@ fromPlanarDiagram planarDiagram
          regions = IMap.map (Region . map edgeFromSide) edgeRegions
          --Validate regions (So both sides of an edge cannot appear in the same region)
          validRegions = IMap.null $ IMap.filter hasDuplicates regions
-         hasDuplicates (Region xs) = length xs == Set.size (Set.fromList xs)
+         hasDuplicates (Region xs) = length xs /= Set.size (Set.fromList xs)
          --Construct the edge types used in knot diagram
          edges = IMap.mapWithKey fullEdge basicEdgesOriented
          fullEdge eIndex (e1,e2) = Edge e1 e2 
@@ -256,7 +258,7 @@ orientedEdgeBasicFromCrossings crossings'
          orientedEdgeMap = IMap.union loops orientedProperEdges
 
 --Data structure to represent the 2 sides of an edge
-data EdgeSide = LeftSide EdgeIndex | RightSide EdgeIndex deriving(Eq,Ord)
+data EdgeSide = LeftSide EdgeIndex | RightSide EdgeIndex deriving(Eq,Ord,Show)
 
 edgeFromSide :: EdgeSide -> EdgeIndex
 edgeFromSide (LeftSide e) = e
@@ -288,12 +290,14 @@ edgeRegionsFromCrossingsAndOrienttions crossings' edgeMap' = IMap.map Set.toList
          combineRegions regionMap c@(Crossing e1 e2 e3 e4) --For a generic crossing we need to switch on the orientation of the crossbar
                | posCrossing c    = combine2RegionsEdges (LeftSide e1) (RightSide e2)
                                   . combine2RegionsEdges (RightSide e1) (RightSide e4)
-                                  . combine2RegionsEdges (LeftSide e3) (LeftSide e4)
-                                  . combine2RegionsEdges (RightSide e3) (LeftSide e1) $ regionMap
+                                  . combine2RegionsEdges (LeftSide e3) (LeftSide e2)
+                                  . combine2RegionsEdges (RightSide e3) (LeftSide e4) $ regionMap
+                                  
                | otherwise        = combine2RegionsEdges (LeftSide e1) (LeftSide e2)
                                   . combine2RegionsEdges (RightSide e1) (LeftSide e4)
                                   . combine2RegionsEdges (LeftSide e3) (RightSide e2)
                                   . combine2RegionsEdges (RightSide e3) (RightSide e4) $ regionMap
+                                  
          combineRegions regionMap (LoopCrossingTL loop e1 e2)
                                   = combine2RegionsEdges (LeftSide e1) (RightSide loop)
                                   . combine2RegionsEdges (RightSide e1) (RightSide e2)
@@ -310,6 +314,7 @@ edgeRegionsFromCrossingsAndOrienttions crossings' edgeMap' = IMap.map Set.toList
                                   = combine2RegionsEdges (LeftSide e1) (LeftSide e2)
                                   . combine2RegionsEdges (RightSide e1) (LeftSide loop)
                                   . combine2RegionsEdges (RightSide e2) (LeftSide loop) $ regionMap
+                                  
          combineRegions regionMap (DoubleLoopL loop1 loop2)
                                   = combine2RegionsEdges (RightSide loop1) (LeftSide loop2) regionMap
          combineRegions regionMap (DoubleLoopR loop1 loop2)
