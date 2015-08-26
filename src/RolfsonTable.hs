@@ -1,8 +1,14 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module RolfsonTable where
+
+import Test.SmallCheck.Series
 
 import KnotDiagram
 
 import Data.Maybe(fromJust)
+
+import Debug.Trace(trace)
 
 --Note in this it is assumed that the Rolfson table is truncated to just the 
 -- first 7 crossings this is done for space.
@@ -13,7 +19,7 @@ import Data.Maybe(fromJust)
 --Basic data structure to hold any possible knot in the Rolfson table
 -- The constructor is hidden so only valid knots in the table can be created
 
-data RolfsonKnot = Rolfson Int Int
+data RolfsonKnot = Rolfson Int Int deriving(Eq,Ord,Show)
 
 --In this we check only valid knots may be created 
 -- For now we only deal with knots upto 7 crossings
@@ -21,10 +27,24 @@ rolfson :: Int -> Int -> Maybe RolfsonKnot
 rolfson crossings index | crossings < 0 = Nothing --Must have a positive number of crossings
                         | crossings > 7 = Nothing --We truncate the Rolfson table for now
                         | index <= 0 = Nothing -- Rolfson knots are 1 indexed.
-                        | index > maxIndex !! crossings = Nothing -- Have exceeded maximum index with given crossing number
+                        | index > maxIndices !! crossings = Nothing -- Have exceeded maximum index with given crossing number
                         | otherwise = Just $ Rolfson crossings index -- Valid knot in table
-   where maxIndex = [1,0,0,1,1,2,3,7] -- Maximum indices in table for each crossing number from 0
+   where
    
+-- Maximum indices in table for each crossing number from 0
+maxIndices = [1,0,0,1,1,2,3,7]   
+ 
+--Get all the Rolfson knots in the rolfson table with the given number of crossings
+rolfsonKnotsCrossings :: Int -> [RolfsonKnot]
+rolfsonKnotsCrossings d | d < 0 = []
+                        | d > 7 = []
+                        | otherwise = map (Rolfson d) [1..maxIndex]
+  where maxIndex = maxIndices !! d
+   
+--Get all the Rolfson knots in the table
+rolfsonKnots :: [RolfsonKnot]
+rolfsonKnots = concatMap rolfsonKnotsCrossings [0..7]
+
 --Convert a Rolfson knot to the minimum crossing diagram given in the table.
 knotDiagram :: RolfsonKnot -> KnotDiagram
 --We can use fromJust as these are pretested.
@@ -63,3 +83,11 @@ planarDiagram (Rolfson 7 7) = [(1,8,2,9),(7,2,8,3),(3,12,4,13),(11,4,12,5),
                                (5,1,6,14),(9,7,10,6),(13,11,14,10)]
 
 planarDiagram (Rolfson _ _) = error "Invalid Rolfson knot used" -- A rolfson knot not in table used should be impossible
+
+
+
+
+--Testing Instances 
+--Instance for small check.
+instance (Monad m) => Serial m RolfsonKnot where
+    series = generate $ \d -> concatMap rolfsonKnotsCrossings [1..d] 
