@@ -7,8 +7,6 @@ import Data.List(foldl')
 import Control.Applicative((<$>))
 import Control.Arrow((&&&))
 
-import Debug.Trace(trace)
-
 import Data.Maybe(fromJust,isNothing)
 
 --Helper types to indicate what the various indices refer to
@@ -86,7 +84,7 @@ firstIncoming (DoubleLoopR _ _) = Nothing
 
 --Helper function returns the next proper edge ie the next edge in a walk
 -- around the knot that isn't a loop. Fails for a double loop and
--- if the given edge isnt a proper edge (potentially) incoming edge of this crossing
+-- if the given edge isnt a proper (potentially) incoming edge of this crossing
 nextProperEdgeIndex :: Crossing -> EdgeIndex -> Maybe EdgeIndex
 nextProperEdgeIndex (Crossing e1 e2 e3 e4) eIn
                        | eIn == e1 = Just e3
@@ -99,6 +97,35 @@ nextProperEdgeIndex (LoopCrossingBL _ e1 e2) eIn = if e2 == eIn then Just e1 els
 nextProperEdgeIndex (LoopCrossingBR _ e1 e2) eIn = if e1 == eIn then Just e2 else Nothing
 nextProperEdgeIndex (DoubleLoopL _ _) _ = Nothing
 nextProperEdgeIndex (DoubleLoopR _ _) _ = Nothing
+
+--Helper function returns the next proper edge ie the next edge in a walk
+-- around the knot includes edges that are loops.
+-- Assumes edge incoming and raises an error otherwise. 
+nextEdgeIndex :: Crossing -> EdgeIndex -> EdgeIndex
+nextEdgeIndex (Crossing e1 e2 e3 e4) eIn
+                       | eIn == e1 = e3
+                       | eIn == e2 = e4
+                       | eIn == e4 = e2
+                       | otherwise = error "Non incoming edge passed to next edge index"
+nextEdgeIndex (LoopCrossingTL loop e1 e2) eIn
+                       | eIn == e1 = loop  
+                       | eIn == loop = e2
+                       | otherwise = error "Non incoming edge passed to next edge index"
+nextEdgeIndex (LoopCrossingTR loop e1 e2) eIn
+                       | eIn == e1 = loop  
+                       | eIn == loop = e2  
+                       | otherwise = error "Non incoming edge passed to next edge index"
+nextEdgeIndex (LoopCrossingBL loop e1 e2) eIn
+                       | eIn == e2 = loop  
+                       | eIn == loop = e1     
+                       | otherwise = error "Non incoming edge passed to next edge index" 
+nextEdgeIndex (LoopCrossingBR loop e1 e2) eIn
+                       | eIn == e1 = loop  
+                       | eIn == loop = e2
+                       | otherwise = error "Non incoming edge passed to next edge index"
+nextEdgeIndex (DoubleLoopL loop1 loop2) eIn = if eIn == loop1 then loop2 else loop1
+nextEdgeIndex (DoubleLoopR loop1 loop2) eIn = if eIn == loop1 then loop2 else loop1
+              
                
 
 --The type of information associated to an edge
@@ -325,3 +352,24 @@ edgeRegionsFromCrossingsAndOrienttions crossings' edgeMap' = IMap.map Set.toList
            where edge2 = edgeMap' IMap.! e2
                  edge4 = edgeMap' IMap.! e4     
          posCrossing _ = False --Function not designed for other edge types.
+         
+         
+-- Edge functions
+
+--Get an ordered 'walk' around the knot
+-- This is a cycle of edges which go around the knot in it's prefered orientation
+knotWalk :: KnotDiagram -> [EdgeIndex]
+knotWalk knot | IMap.null (edges knot) = [] --Walk around empty knot is empty
+              --Go around knot until startEdge is met again
+              --Need to take the tail of walk and add startEdgeI to start
+              -- so takeWhile can stop at the first instance of startEdgeI
+              | otherwise = startEdgeI : takeWhile (/=startEdgeI) (tail walk)
+  where startEdgeI = fst . IMap.findMin $ edges knot 
+        walk = iterate nextEdgeI startEdgeI
+        --Compute the next edge index from a given edge index
+        -- Get the crossing at the endpoint and use helper function.
+        nextEdgeI curEdgeI = nextEdgeIndex curCrossing curEdgeI
+          where curEdge = edges knot IMap.! curEdgeI
+                (Edge _ curCrossingI _ _) = curEdge
+                curCrossing = crossings knot IMap.! curCrossingI
+                
