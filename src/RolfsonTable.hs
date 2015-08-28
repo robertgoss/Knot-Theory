@@ -2,13 +2,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module RolfsonTable where
 
-import Test.SmallCheck.Series
-
 import KnotDiagram
 
 import Data.Maybe(fromJust)
 
-import Debug.Trace(trace)
 
 --Note in this it is assumed that the Rolfson table is truncated to just the 
 -- first 7 crossings this is done for space.
@@ -83,11 +80,3 @@ planarDiagram (Rolfson 7 7) = [(1,8,2,9),(7,2,8,3),(3,12,4,13),(11,4,12,5),
                                (5,1,6,14),(9,7,10,6),(13,11,14,10)]
 
 planarDiagram (Rolfson _ _) = error "Invalid Rolfson knot used" -- A rolfson knot not in table used should be impossible
-
-
-
-
---Testing Instances 
---Instance for small check.
-instance (Monad m) => Serial m RolfsonKnot where
-    series = generate $ \d -> concatMap rolfsonKnotsCrossings [1..d] 

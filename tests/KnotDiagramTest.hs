@@ -3,6 +3,8 @@ import KnotDiagram
 
 import RolfsonTable
 
+import TestingInterface
+
 import Data.Maybe(isJust,fromJust)
 
 import qualified Data.IntMap as IMap
@@ -38,7 +40,7 @@ testFromPlanarDiagram = testGroup "Tests construction of knot diagram from plana
 --Set option depth to use all knots by depth.
 testPDAllRolfson :: TestTree
 testPDAllRolfson = SC.testProperty "All rolfson knots are valid" $
-                        isJust . fromPlanarDiagram . planarDiagram
+                        isJust . fromPlanarDiagram . planarDiagram . tRolfson
 
 
 --Does the given pd form a valid knot.
@@ -94,7 +96,7 @@ testKnotWalk = testGroup "Tests the knot walk of a knot"
 --Uses rolfson table to generate knots for now.
 testKWAllEdgesUsed :: TestTree
 testKWAllEdgesUsed = SC.testProperty "When a knot is walked all edges are used" $
-                       testKnot . knotDiagram
+                       testKnot . knotDiagram . tRolfson
                        --Checks length is sufficient as we also check irredundancy.
                   where testKnot knot = IMap.size (edges knot) == length (knotWalk knot)
                         
@@ -102,7 +104,7 @@ testKWAllEdgesUsed = SC.testProperty "When a knot is walked all edges are used" 
 --Uses rolfson table to generate knots for now.
 testKWNoReapeatEdges :: TestTree
 testKWNoReapeatEdges = SC.testProperty "When a knot is walked all no edge is repeated" $
-                        testKnot . knotDiagram
+                        testKnot . knotDiagram . tRolfson
                     where testKnot knot = noRepeats (knotWalk knot)
                           noRepeats xs = length xs == Set.size (Set.fromList xs)
                     
