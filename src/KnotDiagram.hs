@@ -132,11 +132,18 @@ nextEdgeIndex (DoubleLoopR loop1 loop2) eIn = if eIn == loop1 then loop2 else lo
 -- The 2 vertices which the edge is going from / to
 -- and the 2 regions that it borders on the left/right according to
 -- it's orientation.
-data Edge = Edge VertexIndex VertexIndex RegionIndex RegionIndex deriving(Eq,Ord,Show)
+data Edge = Edge {
+  edgeStartCross :: VertexIndex,
+  edgeEndCross :: VertexIndex,
+  edgeLeftRegion :: RegionIndex,
+  edgeRightRegion :: RegionIndex
+}deriving(Eq,Ord,Show)
 
 --The type of information associated to an edge
 -- The list of edges that border this region organised clockwise.
-data Region = Region [EdgeIndex] deriving(Eq,Ord,Show)
+data Region = Region {
+  regionEdges :: Set.Set EdgeIndex
+} deriving(Eq,Ord,Show)
 
 --The basic type of a knot diagram
 -- Associates data to the crossings, edges and regions. 
@@ -183,10 +190,12 @@ fromPlanarDiagram planarDiagram
          -- We need to validate that these regions are correct
          edgeRegions = edgeRegionsFromCrossingsAndOrienttions crossings basicEdgesOriented
          --Construct the edgeMap and regionMap in the forms from the knot diagram
-         regions = IMap.map (Region . map edgeFromSide) edgeRegions
+         regionsList = IMap.map (map edgeFromSide) edgeRegions
          --Validate regions (So both sides of an edge cannot appear in the same region)
-         validRegions = IMap.null $ IMap.filter hasDuplicates regions
-         hasDuplicates (Region xs) = length xs /= Set.size (Set.fromList xs)
+         validRegions = IMap.null $ IMap.filter hasDuplicates regionsList
+         hasDuplicates xs = length xs /= Set.size (Set.fromList xs)
+         --Construct regions as sset as we know no duplicates due to guard
+         regions = IMap.map (Region . Set.fromList) regionsList
          --Construct the edge types used in knot diagram
          edges = IMap.mapWithKey fullEdge basicEdgesOriented
          fullEdge eIndex (e1,e2) = Edge e1 e2 
