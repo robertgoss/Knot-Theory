@@ -12,10 +12,12 @@ library
                    smallcheck
   ghc-options:     -Wall
   other-modules:   
+                   KnotMorphism
+  exposed-modules: 
                    KnotDiagram,
                    RolfsonTable
 
-test-suite diagram_construction
+test-suite knots
   type:            exitcode-stdio-1.0
   ghc-options:     -Wall -rtsopts
   build-depends:   
@@ -29,7 +31,8 @@ test-suite diagram_construction
                    smallcheck
   other-modules:   
                   KnotDiagram,
-                  KnotDiagramTest
+                  KnotDiagramTest,
+                  KnotMorphism
   hs-source-dirs:  
                   tests,
                   src
