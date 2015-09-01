@@ -31,6 +31,7 @@ instance (Monad m) => Serial m TestingRolfson where
 
 newtype TestingKnotDiagram = TKnotDiagram KnotDiagram deriving(Eq,Ord,Show)
 
+tKnotDiagram :: TestingKnotDiagram -> KnotDiagram
 tKnotDiagram (TKnotDiagram k) = k
 
 --Instance for smallcheck
@@ -38,3 +39,16 @@ tKnotDiagram (TKnotDiagram k) = k
 instance (Monad m) => Serial m TestingKnotDiagram where
     series = liftM (TKnotDiagram . knotDiagram . tRolfson) series
     
+--Instance for knot diagram isomorphism
+
+
+newtype TestingKDIsomorphism = TKDIsomorphism KnotDiagramIsomorphism deriving(Eq,Ord,Show)
+
+tKDIsomorphism :: TestingKDIsomorphism -> KnotDiagramIsomorphism
+tKDIsomorphism (TKDIsomorphism iso) = iso
+  
+--Instance for small check.
+--For a series construct a take a knot and construct an
+-- isomorphism by mapping each vertex etc to its ordered index.
+instance (Monad m) => Serial m TestingKDIsomorphism where
+    series = liftM (TKDIsomorphism . toOrderedMorphism . tKnotDiagram) series

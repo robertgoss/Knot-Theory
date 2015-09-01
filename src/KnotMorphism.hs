@@ -45,7 +45,7 @@ data KnotDiagramIsomorphism = KnotDiagIso {
    --The relations between the regions of the source and target diagrams
    -- induced by the above map of crossings
    knotDiagIsoRegionMap :: IMap.IntMap RegionIndex
-}
+} deriving(Eq,Ord,Show)
 
 instance Morphism KnotDiagram KnotDiagramIsomorphism where
     source = knotDiagIsoSource
@@ -149,3 +149,24 @@ knotDiagramsIsomorphism knot1 knot2 = case knotDiagramsAllIsomorphisms knot1 kno
 --Returns if 2 knot diagrams are isomorphic as knot diagrams
 knotDiagramsIsomorphic :: KnotDiagram -> KnotDiagram -> Bool
 knotDiagramsIsomorphic knot1 knot2 = isJust $ knotDiagramsIsomorphism knot1 knot2
+
+--Takes a knot diagram and gives and isomorphism to a knot with vertex etc indexes in 
+-- the range [1..vertex num] etc. 
+--This is an order preserving map between indices.
+toOrderedMorphism :: KnotDiagram -> KnotDiagramIsomorphism
+toOrderedMorphism knot = KnotDiagIso {
+                            knotDiagIsoSource = knot,
+                            knotDiagIsoTarget = orderedKnot,
+                            knotDiagIsoCrossingMap = cMap,
+                            knotDiagIsoEdgeMap = eMap,
+                            knotDiagIsoRegionMap = rMap
+                         }
+     where cMap = mapReordering $ crossings knot
+           eMap = mapReordering $ edges knot
+           rMap = mapReordering $ regions knot
+           mapReordering m = IMap.fromList $ zip (IMap.keys m) [1..]
+           newCs = reorderedMap $ crossings knot
+           newEs = reorderedMap $ edges knot
+           newRs = reorderedMap $ regions knot
+           reorderedMap = IMap.fromList . zip [1..] . IMap.elems
+           orderedKnot = KnotDiagram newCs newEs newRs
