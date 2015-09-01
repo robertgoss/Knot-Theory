@@ -3,9 +3,12 @@ module TestingInterface where
 
 import Test.SmallCheck.Series
 
+import Control.Monad(liftM)
+
 import KnotDiagram
 import RolfsonTable
 import KnotMorphism
+
 
 
 --Testing interfaces for using smallcheck and quickcheck without either orphan instances 
@@ -23,3 +26,15 @@ tRolfson (TRolfson r) = r
 --Instance for small check.
 instance (Monad m) => Serial m TestingRolfson where
     series = generate $ \d -> map TRolfson $ concatMap rolfsonKnotsCrossings [1..d] 
+     
+-- Interfaces for knot diagram
+
+newtype TestingKnotDiagram = TKnotDiagram KnotDiagram deriving(Eq,Ord,Show)
+
+tKnotDiagram (TKnotDiagram k) = k
+
+--Instance for smallcheck
+-- For now just return the Rolfson knot
+instance (Monad m) => Serial m TestingKnotDiagram where
+    series = liftM (TKnotDiagram . knotDiagram . tRolfson) series
+    
