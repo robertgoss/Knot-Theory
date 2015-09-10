@@ -64,7 +64,7 @@ instance Morphism KnotDiagram KnotDiagramIsomorphism where
              cMap = knotDiagIsoCrossingMap morp1 `compMaps` knotDiagIsoCrossingMap morp2
              eMap = knotDiagIsoEdgeMap morp1 `compMaps` knotDiagIsoEdgeMap morp2
              rMap = knotDiagIsoRegionMap morp1 `compMaps` knotDiagIsoRegionMap morp2
-             compMaps iMap1 iMap2 = IMap.fromList [(i,iMap1 IMap.! i) | i<-IMap.keys iMap2]
+             compMaps iMap1 iMap2 = IMap.fromList [(i,iMap1 IMap.! j) | (i,j)<-IMap.assocs iMap2]
              
 instance Isomorphism KnotDiagram KnotDiagramIsomorphism where
      --Invert individual maps
