@@ -60,7 +60,7 @@ testKDIInvertIsLeftInverse = SC.testProperty "Invert is left inverse" leftInvers
 
 testKDIInvertIsRightInverse :: TestTree
 testKDIInvertIsRightInverse = SC.testProperty "Invert is right inverse" rightInverseTest
-   where rightInverseTest tIso = iso `composeUnsafe` invert iso == identity (source iso)
+   where rightInverseTest tIso = iso `composeUnsafe` invert iso == identity (target iso)
            where iso = tKDIsomorphism tIso
 
 testKDIInvertExchangeSourceTarget :: TestTree
@@ -105,14 +105,14 @@ testKDAIRolfsonKnotOnlyIsoToSelf = SC.testProperty "Rolfson knots are only diagr
                   k2 = knotDiagram r2
 
 testKDAITerfoilNotIsoToReverse:: TestTree
-testKDAITerfoilNotIsoToReverse = testCase "Check trefoil is not isomorphic to its reverse" $ 
+testKDAITerfoilNotIsoToReverse = testCase "Check trefoil is isomorphic to its reverse" $ 
                                     True @?= knotDiagramsIsomorphic trefoil trefoilReverse
     where trefoil = fromJust $ fromPlanarDiagram [(4,2,5,1),(2,6,3,5),(6,4,1,3)]
           trefoilReverse = fromJust $ fromPlanarDiagram [(3,1,4,6),(5,3,6,2),(1,5,2,4)]
 
 testKDAITerfoilNotIsoToMirror :: TestTree
 testKDAITerfoilNotIsoToMirror = testCase "Check trefoil is not isomorphic to its mirror" $ 
-                                    True @?= knotDiagramsIsomorphic trefoil trefoilMirror
+                                    False @?= knotDiagramsIsomorphic trefoil trefoilMirror
     where trefoil = fromJust $ fromPlanarDiagram [(4,2,5,1),(2,6,3,5),(6,4,1,3)]
           trefoilMirror = fromJust $ fromPlanarDiagram [(1,4,2,5),(5,2,6,3),(3,6,4,1)]
 
