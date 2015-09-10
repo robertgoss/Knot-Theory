@@ -76,6 +76,10 @@ instance Isomorphism KnotDiagram KnotDiagramIsomorphism where
               rMap = invMap $ knotDiagIsoRegionMap morp
               invMap = IMap.fromList . map swp . IMap.toList
               swp (a,b) = (b,a)
+              
+--Returns all possible diagram isomorphisms between a knot diagram and itself.
+knotDiagramAllAutomorphisms :: KnotDiagram -> [KnotDiagramIsomorphism]
+knotDiagramAllAutomorphisms knot = knotDiagramsAllIsomorphisms knot knot
 
 --Returns all possible diagram isomorphisms between two knot diagrams
 knotDiagramsAllIsomorphisms :: KnotDiagram -> KnotDiagram -> [KnotDiagramIsomorphism]
@@ -92,7 +96,8 @@ knotDiagramsAllIsomorphisms knot1 knot2
         --Alignments of 2 walks by fixing walk1 and changing the starting point of walk 2
         alignments = zip (repeat walk1) (cycles walk2)
          --All cyclic permutations of a list
-        cycles xs = zipWith (++) (inits xs) (tails xs) 
+         -- Take tail otherwise identity is repeated.
+        cycles xs = tail $ zipWith (++) (tails xs) (inits xs) 
 
 --Try to form iso from alignment of walks
 --Helper function from above
