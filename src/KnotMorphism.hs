@@ -7,7 +7,6 @@ import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
 import Data.Maybe(isJust, fromJust, mapMaybe)
 import Data.List(inits,tails)
-import Control.Monad(mapM)
 
 --Outline definition of a morphism in a category
 --Functions shared by all knot morphisms 

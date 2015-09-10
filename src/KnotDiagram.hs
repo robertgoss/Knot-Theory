@@ -165,39 +165,39 @@ type PlanarDiagram = [(Int,Int,Int,Int)]
 -- planar diagrams define valid knots the result is wrapped in a maybe
 fromPlanarDiagram :: PlanarDiagram -> Maybe KnotDiagram
 fromPlanarDiagram planarDiagram
-     | isNothing crossings' = Nothing
-     | isNothing basicEdgesOriented' = Nothing
+     | isNothing crossingsMaybe = Nothing
+     | isNothing basicEdgesOrientedMaybe = Nothing
      | not validRegions = Nothing
-     | otherwise = Just KnotDiagram { crossings = crossings,
-                                      edges = edges,
-                                      regions = regions
+     | otherwise = Just KnotDiagram { crossings = crossings',
+                                      edges = edges',
+                                      regions = regions'
                                     }
   where  --Construct crossings from diagram with possibility of failure 
-         crossings' = crossingsFromPlanarDiagram planarDiagram
+         crossingsMaybe = crossingsFromPlanarDiagram planarDiagram
          --Get crossings out of maybe for ease of use later 
          -- Is safe as we guard against a nothing in the main function
          -- Done for simplicity of further calls
-         crossings = fromJust crossings'
+         crossings' = fromJust crossingsMaybe
          --Construct the basic oriented edges from crossings with possibility of failure
          -- Does not include region data yet
-         basicEdgesOriented' = orientedEdgeBasicFromCrossings crossings
+         basicEdgesOrientedMaybe = orientedEdgeBasicFromCrossings crossings'
          --Get basicEdgeOriented  out of maybe for ease of use later 
          -- Is safe as we guard against a nothing in the main function
          -- Done for simplicity of further calls
-         basicEdgesOriented = fromJust basicEdgesOriented'
+         basicEdgesOriented = fromJust basicEdgesOrientedMaybe
          --Construct the regions here as a from regionIndices to the set
          -- Of edges that this region meets
          -- We need to validate that these regions are correct
-         edgeRegions = edgeRegionsFromCrossingsAndOrienttions crossings basicEdgesOriented
+         edgeRegions = edgeRegionsFromCrossingsAndOrienttions crossings' basicEdgesOriented
          --Construct the edgeMap and regionMap in the forms from the knot diagram
          regionsList = IMap.map (map edgeFromSide) edgeRegions
          --Validate regions (So both sides of an edge cannot appear in the same region)
          validRegions = IMap.null $ IMap.filter hasDuplicates regionsList
          hasDuplicates xs = length xs /= Set.size (Set.fromList xs)
          --Construct regions as sset as we know no duplicates due to guard
-         regions = IMap.map (Region . Set.fromList) regionsList
+         regions' = IMap.map (Region . Set.fromList) regionsList
          --Construct the edge types used in knot diagram
-         edges = IMap.mapWithKey fullEdge basicEdgesOriented
+         edges' = IMap.mapWithKey fullEdge basicEdgesOriented
          fullEdge eIndex (e1,e2) = Edge e1 e2 
                                         (regionIndex (LeftSide eIndex))
                                         (regionIndex (RightSide eIndex))

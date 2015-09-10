@@ -21,14 +21,15 @@ data RolfsonKnot = Rolfson Int Int deriving(Eq,Ord,Show)
 --In this we check only valid knots may be created 
 -- For now we only deal with knots upto 7 crossings
 rolfson :: Int -> Int -> Maybe RolfsonKnot
-rolfson crossings index | crossings < 0 = Nothing --Must have a positive number of crossings
-                        | crossings > 7 = Nothing --We truncate the Rolfson table for now
+rolfson crossings' index | crossings' < 0 = Nothing --Must have a positive number of crossings
+                        | crossings' > 7 = Nothing --We truncate the Rolfson table for now
                         | index <= 0 = Nothing -- Rolfson knots are 1 indexed.
-                        | index > maxIndices !! crossings = Nothing -- Have exceeded maximum index with given crossing number
-                        | otherwise = Just $ Rolfson crossings index -- Valid knot in table
+                        | index > maxIndices !! crossings' = Nothing -- Have exceeded maximum index with given crossing number
+                        | otherwise = Just $ Rolfson crossings' index -- Valid knot in table
    where
    
 -- Maximum indices in table for each crossing number from 0
+maxIndices :: [Int]
 maxIndices = [1,0,0,1,1,2,3,7]   
  
 --Get all the Rolfson knots in the rolfson table with the given number of crossings
