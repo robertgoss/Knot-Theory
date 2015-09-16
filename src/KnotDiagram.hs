@@ -126,7 +126,14 @@ nextEdgeIndex (LoopCrossingBR loop e1 e2) eIn
 nextEdgeIndex (DoubleLoopL loop1 loop2) eIn = if eIn == loop1 then loop2 else loop1
 nextEdgeIndex (DoubleLoopR loop1 loop2) eIn = if eIn == loop1 then loop2 else loop1
               
-               
+swapEdge :: EdgeIndex -> EdgeIndex -> Crossing -> Maybe Crossing
+swapEdge eOld eNew crossing = crossingFromEdges swappedEdges
+   where [e1,e2,e3,e4] = crossingEdges crossing
+         swappedEdges | e1 == eOld = (eNew,e2,e3,e4)
+                      | e2 == eOld = (e1,eNew,e3,e4)
+                      | e3 == eOld = (e1,e2,eNew,e4)
+                      | e4 == eOld = (e1,e2,e3,eNew)
+                      | otherwise = (e1,e2,e3,e4)
 
 --The type of information associated to an edge
 -- The 2 vertices which the edge is going from / to
