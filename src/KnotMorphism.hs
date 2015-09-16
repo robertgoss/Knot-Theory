@@ -30,7 +30,8 @@ class (Eq a) => Morphism a b | b -> a where
 --Outline definition of a isomorphism in a category
 -- A morphism with an inverse.
 class (Morphism a b) => Isomorphism a b where
-   invert :: b -> b
+   invert :: b -> b   
+
 
 data KnotDiagramIsomorphism = KnotDiagIso {
    knotDiagIsoSource :: KnotDiagram,
@@ -174,3 +175,108 @@ toOrderedMorphism knot = KnotDiagIso {
            newRs = reorderedMap $ regions knot
            reorderedMap = IMap.fromList . zip [1..] . IMap.elems
            orderedKnot = KnotDiagram newCs newEs newRs
+           
+           
+--A datatype for a single reidermiester move 
+-- It can to be assumed that all the indices are valid as the constructor is not
+-- Exported.
+data ReidermeisterMove = --A R0 move which is a diagram isomorphism
+                         R0 KnotDiagramIsomorphism
+                         --A R1 move which is a diagram, an edge,a bool to say if we twist right or left
+                         -- of the oriented edge and a bool to say if the crossing is positive or negative.
+                       | R1 KnotDiagram EdgeIndex Bool Bool
+                         --The inverse to a R1 move defined by a diagram and a region 
+                         -- Bounded by only one edge  
+                       | R1Inv KnotDiagram RegionIndex
+                         --A R2 move defined by a diagram and 2 edges bounding the same region
+                         -- which the R2 move crosses.
+                       | R2 KnotDiagram EdgeIndex EdgeIndex
+                         --The inverse to a R2 move defined by a diagram and a region 
+                         -- Bounded by 2 edges which are separable.
+                       | R2Inv KnotDiagram RegionIndex
+                         --A R3 move defined by a diagram, a region bounded by 3 edges
+                         -- In the R3 form and a bounding edge to cross over.
+                       | R3 KnotDiagram RegionIndex EdgeIndex
+                       
+reidermeisterSource :: ReidermeisterMove -> KnotDiagram
+reidermeisterSource (R0 iso) = source iso
+reidermeisterSource (R1 s _ _ _) = s
+reidermeisterSource (R1Inv s _) = s
+reidermeisterSource (R2 s _ _) = s
+reidermeisterSource (R2Inv s _) = s
+reidermeisterSource (R3 s _ _) = s
+    
+--Helper function given a map gives a list of indices not in the map
+newIndices :: IMap.IntMap a -> [Int]
+newIndices map | IMap.null map = [1..] -- For a null map we may not be able to find a maximum
+               | otherwise = [maxIndex+1..]
+  where maxIndex = fst $ IMap.findMax map
+    
+reidermeisterTarget :: ReidermeisterMove -> KnotDiagram 
+reidermeisterTarget (R0 iso) = target iso
+--For labels see diagrams 1->
+--Perform an R1 move on the given diagram
+-- edgeIn assumed valid
+reidermeisterTarget (R1 knot edgeIn orient sign) = KnotDiagram crossings' edges' regions'
+  where edge = edges knot IMap.! edgeIn
+        --The crossing index at the end of the edge
+        endCrossingIn = edgeEndCross edge
+        --The region index into which the twist will be put depends on orientation
+        -- And the opposite region
+        regionTwistIn = if orient then edgeLeftRegion edge else edgeRightRegion edge
+        regionOtherIn = if orient then edgeRightRegion edge else edgeLeftRegion edge
+        --new indices for the new edges region and crossing
+        newCrossingIn = head . newIndices $ crossings knot
+        [newEdge1In, newEdge2In] = take 2 . newIndices $ crossings knot
+        newRegionIn = head . newIndices $ regions knot
+        --New edges region and crossing
+        -- Region of the interior of the loop
+        newRegion = Region $ Set.fromList [newEdge1In]
+        --New crossing at base of twist depends on sign and orientation.
+        newCrossingM = case (orient, sign) of
+                       (True, True)->crossingFromEdges (newEdge1In, newEdge1In, newEdge2In, endCrossingIn)
+                       (True, False)->crossingFromEdges (endCrossingIn, newEdge1In, newEdge1In, newEdge2In)
+                       (False, True)->crossingFromEdges (endCrossingIn, newEdge2In, newEdge1In, newEdge1In)
+                       (False, False)->crossingFromEdges (newEdge1In, endCrossingIn, newEdge2In, newEdge1In)
+        newCrossing = fromJust newCrossingM
+        --New edges making up the twist and connecting twist to end crossing
+        -- On the twisted loop the orientation effects the ordering of the edges
+        newEdge1 = if orient then Edge newCrossingIn newCrossingIn newRegionIn regionTwistIn
+                             else Edge newCrossingIn newCrossingIn regionTwistIn newRegionIn
+        newEdge2 = Edge newCrossingIn endCrossingIn (edgeLeftRegion edge) (edgeRightRegion edge)
+        --Modify exisiting edges, end crossing and regions
+        --On the end crossing swap the incoming edge edgeIn with newEdge2In
+        modifyEndCrossing = fromJust . swapEdge edgeIn newEdge2In $ crossings knot IMap.! endCrossingIn
+        --On the given edge change the end crossing from endCrossingIn to newCrossingIn
+        modifyEdge = edge { edgeEndCross = newCrossingIn }
+        --On the twisting region add both new edges
+        newEdgesSet = Set.fromList [newEdge1In, newEdge2In] 
+        modifyTwistRegion = Region $ newEdgesSet `Set.union` regionEdges (regions knot IMap.! regionTwistIn)
+        --For other region just insert second new edge
+        modifyOtherRegion = Region $ newEdge2In `Set.insert` regionEdges (regions knot IMap.! regionOtherIn)
+        --Insert / update crossings, edges and regions maps
+        crossings' = IMap.insert endCrossingIn modifyEndCrossing 
+                     . IMap.insert newCrossingIn newCrossing
+                     $ crossings knot
+        edges' = IMap.insert edgeIn modifyEdge
+                 . IMap.insert newEdge1In newEdge1
+                 . IMap.insert newEdge2In newEdge2
+                 $ edges knot
+        regions' = IMap.insert regionTwistIn modifyTwistRegion
+                   . IMap.insert regionOtherIn modifyOtherRegion
+                   . IMap.insert newRegionIn newRegion
+                   $ regions knot
+--Stub out other reidermeiser moves.
+reidermeisterTarget _ = undefined -- 
+                   
+                   
+--A morphism of knot diagrams that is a isomorphism of knots
+  -- Is a sequence of Reidermiester moves such that the source and target
+  -- match up.
+  -- We cache the source and target of the morphism.
+data KnotIsomorphism = KnotIso {
+  knotIsoSource :: KnotDiagram,
+  knotIsoTarget :: KnotDiagram,
+  knotIsoMoves :: [ReidermeisterMove]
+}
+           
