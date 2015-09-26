@@ -27,6 +27,7 @@ testKnotDiagram = localOption (SmallCheckDepth 8) $
 testFromPlanarDiagram :: TestTree
 testFromPlanarDiagram = testGroup "Tests construction of knot diagram from planar diagram"
                                   [testPDAllRolfson,
+                                   testPDUnknot,
                                    testPDBowTie,
                                    testPDDoubleTwist,
                                    testPDInvalidEdges,
@@ -46,6 +47,14 @@ testPDAllRolfson = SC.testProperty "All rolfson knots are valid" $
 --Does the given pd form a valid knot.
 validPd :: PlanarDiagram -> Bool
 validPd = isJust . fromPlanarDiagram
+
+--The unknot with no crossings should be a valid knot with one edge
+testPDUnknot :: TestTree
+testPDUnknot = testCase "Construct unknot" $ True @?= unknotTest
+   where unknotM = fromPlanarDiagram []
+         unknotTest = case unknotM of
+                         Nothing -> False
+                         (Just unknot) -> IMap.size (edges unknot) == 1
 
 --The 'bow-tie' unknot with one crossing should construct a valid knot
 -- This tests a double loop crossing

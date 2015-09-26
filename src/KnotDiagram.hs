@@ -140,11 +140,15 @@ swapEdge eOld eNew crossing = crossingFromEdges swappedEdges
 -- and the 2 regions that it borders on the left/right according to
 -- it's orientation.
 data Edge = Edge {
-  edgeStartCross :: VertexIndex,
-  edgeEndCross :: VertexIndex,
-  edgeLeftRegion :: RegionIndex,
-  edgeRightRegion :: RegionIndex
-}deriving(Eq,Ord,Show)
+     edgeStartCross :: VertexIndex,
+     edgeEndCross :: VertexIndex,
+     edgeLeftRegion :: RegionIndex,
+     edgeRightRegion :: RegionIndex
+   }
+   | Loop {
+     loopLeftRegion :: RegionIndex,
+     loopRightRegion :: RegionIndex
+   } deriving(Eq,Ord,Show)
 
 --The type of information associated to an edge
 -- The list of edges that border this region organised clockwise.
@@ -163,6 +167,16 @@ data KnotDiagram = KnotDiagram {
 
 --Constructors
 
+--Unknot diagram
+--A helper constructor constructs a diagram for an unknot
+unknotDiagram :: KnotDiagram
+unknotDiagram = KnotDiagram {
+                  crossings = IMap.empty, -- An unknot has no corssings
+                  edges = IMap.fromList [(0,Loop 0 1)], --The only edge is a loop dividing into 2 regions
+                  regions = IMap.fromList [(0,Region $ Set.singleton 0)
+                                          ,(1,Region $ Set.singleton 0)]
+               }
+
 --Planar Diagram
 --A helper type for a basic planar diagram for format see reference
 -- It is not assumed that the edges are enumerated in ascending order
@@ -172,6 +186,7 @@ type PlanarDiagram = [(Int,Int,Int,Int)]
 -- planar diagrams define valid knots the result is wrapped in a maybe
 fromPlanarDiagram :: PlanarDiagram -> Maybe KnotDiagram
 fromPlanarDiagram planarDiagram
+     | null planarDiagram = Just unknotDiagram -- An empty planar diagram is an unknot
      | isNothing crossingsMaybe = Nothing
      | isNothing basicEdgesOrientedMaybe = Nothing
      | not validRegions = Nothing
