@@ -208,9 +208,9 @@ reidermeisterSource (R3 s _ _) = s
     
 --Helper function given a map gives a list of indices not in the map
 newIndices :: IMap.IntMap a -> [Int]
-newIndices map | IMap.null map = [1..] -- For a null map we may not be able to find a maximum
+newIndices iMap | IMap.null iMap = [1..] -- For a null map we may not be able to find a maximum
                | otherwise = [maxIndex+1..]
-  where maxIndex = fst $ IMap.findMax map
+  where maxIndex = fst $ IMap.findMax iMap
     
 reidermeisterTarget :: ReidermeisterMove -> KnotDiagram 
 reidermeisterTarget (R0 iso) = target iso
