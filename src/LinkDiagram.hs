@@ -47,6 +47,7 @@ type Component = Component.Component UnknotIndex EdgeIndex
 data LinkDiagram = LinkDiagram Internal.LinkDiagramData
 
 --Get the underlying internal link diagram data from a valid link diagram
+linkDiagramData :: LinkDiagram -> Internal.LinkDiagramData
 linkDiagramData (LinkDiagram ldData) = ldData
 
 --Constructs a link diagram from an internal representation
