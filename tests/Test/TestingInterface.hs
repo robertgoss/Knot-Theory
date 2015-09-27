@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-module TestingInterface where
+module Test.TestingInterface where
 
 import Test.SmallCheck.Series
 

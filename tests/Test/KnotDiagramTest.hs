@@ -1,9 +1,9 @@
-module KnotDiagramTest where
+module Test.KnotDiagramTest where
 import KnotDiagram
 
 import RolfsonTable
 
-import TestingInterface
+import Test.TestingInterface
 
 import Data.Maybe(isJust,fromJust)
 

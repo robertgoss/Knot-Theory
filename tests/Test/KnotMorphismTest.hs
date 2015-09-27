@@ -1,10 +1,10 @@
-module KnotMorphismTest where
+module Test.KnotMorphismTest where
 
 import KnotDiagram
 import KnotMorphism
 import RolfsonTable
 
-import TestingInterface
+import Test.TestingInterface
 
 import Data.Maybe(fromJust)
 

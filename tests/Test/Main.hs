@@ -1,6 +1,6 @@
-module Main where
-import KnotDiagramTest
-import KnotMorphismTest
+module Test.Main where
+import Test.KnotDiagramTest
+import Test.KnotMorphismTest
 
 import Test.Tasty
 
