@@ -81,3 +81,34 @@ regionIndices = Set.fromList . map RegionIndex . IMap.keys . Internal.regions . 
 componentIndices :: LinkDiagram -> Set.Set ComponentIndex
 componentIndices = Set.fromList . map ComponentIndex . IMap.keys . Internal.components . linkDiagramData
 
+--Aspects
+--Access the various apsects of a link with their respective indices 
+-- The indices from a link are valid and type safty means that
+-- it is assumed that  index is valid.
+-- If an index is from another link is used then an error may result!
+--Wraps the lookup of a internal link map and wraps (unwraps) the internal indices
+
+crossings :: LinkDiagram -> VertexIndex -> Crossing
+crossings link (VertexIndex index) = Crossing.indexChange EdgeIndex crossingInternal
+   where crossingMap = Internal.crossings $ linkDiagramData link
+         crossingInternal = (IMap.!) crossingMap index
+
+edges :: LinkDiagram -> EdgeIndex -> Edge
+edges link (EdgeIndex index) = Edge.indexChange VertexIndex RegionIndex ComponentIndex edgeInternal
+   where edgeMap = Internal.edges $ linkDiagramData link
+         edgeInternal = (IMap.!) edgeMap index
+
+unknots :: LinkDiagram -> UnknotIndex -> Unknot
+unknots link (UnknotIndex index) = Unknot.indexChange RegionIndex unknotInternal
+   where unknotMap = Internal.unknots $ linkDiagramData link
+         unknotInternal = (IMap.!) unknotMap index
+
+regions :: LinkDiagram -> RegionIndex -> Region
+regions link (RegionIndex index) = Region.indexChange EdgeIndex UnknotIndex regionInternal
+   where regionMap = Internal.regions $ linkDiagramData link
+         regionInternal = (IMap.!) regionMap index
+
+components :: LinkDiagram -> ComponentIndex -> Component
+components link (ComponentIndex index) = Component.indexChange UnknotIndex EdgeIndex componentInternal
+   where componentMap = Internal.components $ linkDiagramData link
+         componentInternal = (IMap.!) componentMap index

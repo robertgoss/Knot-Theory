@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 module LinkDiagram.Crossing where
 
 --The type of information associated to a crossing in terms of the indices of the edges
@@ -20,4 +21,9 @@ data Crossing edgeIndex
                 -- A crossing that contains 2 loops the first contains
                 -- the incomming undercrossing edge right or left
                 -- indicate if the outgoing part of this edge if left or right
-        deriving(Eq,Ord,Show)
+        deriving(Eq,Ord,Show,Functor)
+
+--Change the index types used in crossing
+-- The index changing function needs to be bijective.
+indexChange :: (edgeIndex1 -> edgeIndex2) -> Crossing edgeIndex1 -> Crossing edgeIndex2
+indexChange = fmap

@@ -14,3 +14,20 @@ data Edge vertexIndex regionIndex componentIndex = Edge {
   edgeRightRegion :: regionIndex,
   edgeComponent :: componentIndex
 }deriving(Eq,Ord,Show)
+
+
+--Change the index types used in edge
+-- Both index changing functions need to be bijective.
+indexChange :: (vertexIndex1 -> vertexIndex2)
+            -> (regionIndex1 -> regionIndex2)
+            -> (componentIndex1 -> componentIndex2)
+            -> Edge vertexIndex1 regionIndex1 componentIndex1
+            -> Edge vertexIndex2 regionIndex2 componentIndex2
+indexChange vertexChange regionChange componentChange edge
+            = Edge {
+              edgeStartCross = vertexChange $ edgeStartCross edge,
+              edgeEndCross = vertexChange $ edgeEndCross edge,
+              edgeLeftRegion = regionChange $ edgeLeftRegion edge,
+              edgeRightRegion = regionChange $ edgeRightRegion edge,
+              edgeComponent = componentChange $ edgeComponent edge
+            }
