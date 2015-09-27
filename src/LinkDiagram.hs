@@ -2,6 +2,12 @@ module LinkDiagram where
 
 import qualified LinkDiagram.Internal as Internal
 
+import qualified LinkDiagram.Crossing as Crossing
+import qualified LinkDiagram.Edge as Edge
+import qualified LinkDiagram.Unknot as Unknot
+import qualified LinkDiagram.Region as Region
+import qualified LinkDiagram.Component as Component
+
 import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
 
@@ -15,58 +21,23 @@ newtype RegionIndex = RegionIndex Int deriving(Eq,Ord,Show)
 newtype ComponentIndex = ComponentIndex Int deriving(Eq,Ord,Show)
 
 
---The type of information associated to a crossing
--- This is split by loops - ie edges that start and end 
--- at this crossing as these are harder to orient in code.
-data Crossing = Crossing EdgeIndex EdgeIndex EdgeIndex EdgeIndex
-                --Standard crossing with 4 distinct edges oriented clockwise 
-                -- From the incoming undercrossing edge
-                | LoopCrossingTL EdgeIndex EdgeIndex EdgeIndex
-                | LoopCrossingTR EdgeIndex EdgeIndex EdgeIndex
-                | LoopCrossingBL EdgeIndex EdgeIndex EdgeIndex
-                | LoopCrossingBR EdgeIndex EdgeIndex EdgeIndex
-                --A crossing with a single loop and in the 
-                -- given quadrant labeled with the first edge index
-                -- The remaining 2 distinct edges are given clockwise 
-                | DoubleLoopL EdgeIndex EdgeIndex
-                | DoubleLoopR EdgeIndex EdgeIndex
-                -- A crossing that contains 2 loops the first contains
-                -- the incomming undercrossing edge right or left
-                -- indicate if the outgoing part of this edge if left or right
-        deriving(Eq,Ord,Show)
+--Types of the knot aspects with the diagram's indices.
 
---The type of information associated to an edge
--- The 2 vertices which the edge is going from / to
--- and the 2 regions that it borders on the left/right according to
--- it's orientation.
-data Edge = Edge {
-  edgeStartCross :: VertexIndex,
-  edgeEndCross :: VertexIndex,
-  edgeLeftRegion :: RegionIndex,
-  edgeRightRegion :: RegionIndex,
-  edgeComponent :: ComponentIndex
-}deriving(Eq,Ord,Show)
+--The type of internal crossings using the diagram's index
+type Crossing = Crossing.Crossing EdgeIndex
 
---The type of information associated to an unknotted component 
--- It is defined by the 2 regions that it bounds and oreinted by which region is on the left / right respectivly
-data Unknot = Unknot {
-  unknotLeftRegion :: RegionIndex,
-  unknotRightRegion :: RegionIndex
-} deriving(Eq,Ord,Show)
+--The type of internal edges using diagram's indices
+type Edge = Edge.Edge VertexIndex RegionIndex ComponentIndex
 
+--The type of internal unknotted components using diagram's index
+type Unknot = Unknot.Unknot RegionIndex
 
---The type of information associated to an edge
--- A region is bounded either by a series of polygons formed
--- Either for a set of edges or from an unknot
-data Region = Region {
-  regionEdges :: Set.Set (Set.Set EdgeIndex),
-  regionUnknots :: Set.Set UnknotIndex
-} deriving(Eq,Ord,Show)
+--The type of internal regions using diagram's indices
+type Region = Region.Region EdgeIndex UnknotIndex
 
---The type of a link component this is either an unknotted component edge
--- Or an oriented list of edges 
-data Component = UnknottedComponent UnknotIndex
-               | Component [EdgeIndex] deriving(Eq,Ord,Show)
+--The type of internal connected component using diagram's indices
+type Component = Component.Component UnknotIndex EdgeIndex
+
 
 --The type of a valid link diagram 
 -- Wraps the internal link diagram data only for 
