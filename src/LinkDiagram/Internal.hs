@@ -116,5 +116,16 @@ isValidCrossings link = all isValidCrossing . IMap.assocs $ crossings link
                  --If a given edge meeting number with a crossing is the same as the meeting number of a crossing to an edge.
                  edgeMeetingNumbersMatch (edgeIndex, edge) = (Crossing.edgeMeetingNumber crossing edgeIndex) 
                                                              == (Edge.crossingMeetingNumber edge vertexIndex)
-                 --Do the region meetings match as required TODO
-                 regionMeetingValid = undefined
+                 --Do the region meetings match as required
+                 -- Sort out the connections of edges based on if the crossing is positive or negative 
+                 -- Ie if the second edge is incoming or outgoing . positive is outgoing.
+                 positive = Edge.startCrossing (crossingEdges !! 1) == vertexIndex
+                 regionMeetingValid | positive =  Edge.leftRegion (crossingEdges !! 0) == Edge.leftRegion (crossingEdges !! 1)
+                                               && Edge.rightRegion (crossingEdges !! 0) == Edge.leftRegion (crossingEdges !! 3)
+                                               && Edge.leftRegion (crossingEdges !! 2) == Edge.rightRegion (crossingEdges !! 1)
+                                               && Edge.rightRegion (crossingEdges !! 2) == Edge.rightRegion (crossingEdges !! 3)
+
+                                    | otherwise = Edge.leftRegion (crossingEdges !! 0) == Edge.rightRegion (crossingEdges !! 1)
+                                               && Edge.rightRegion (crossingEdges !! 0) == Edge.rightRegion (crossingEdges !! 3)
+                                               && Edge.leftRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 1)
+                                               && Edge.rightRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 3)
