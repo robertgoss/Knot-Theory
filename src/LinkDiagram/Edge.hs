@@ -8,11 +8,11 @@ module LinkDiagram.Edge where
 -- it's orientation.
 -- The connected component that it is a part of.
 data Edge vertexIndex regionIndex componentIndex = Edge {
-  edgeStartCross :: vertexIndex,
-  edgeEndCross :: vertexIndex,
-  edgeLeftRegion :: regionIndex,
-  edgeRightRegion :: regionIndex,
-  edgeComponent :: componentIndex
+  startCrossing :: vertexIndex,
+  endCrossing :: vertexIndex,
+  leftRegion :: regionIndex,
+  rightRegion :: regionIndex,
+  component :: componentIndex
 }deriving(Eq,Ord,Show)
 
 
@@ -25,9 +25,14 @@ indexChange :: (vertexIndex1 -> vertexIndex2)
             -> Edge vertexIndex2 regionIndex2 componentIndex2
 indexChange vertexChange regionChange componentChange edge
             = Edge {
-              edgeStartCross = vertexChange $ edgeStartCross edge,
-              edgeEndCross = vertexChange $ edgeEndCross edge,
-              edgeLeftRegion = regionChange $ edgeLeftRegion edge,
-              edgeRightRegion = regionChange $ edgeRightRegion edge,
-              edgeComponent = componentChange $ edgeComponent edge
+              startCrossing = vertexChange $ startCrossing edge,
+              endCrossing = vertexChange $ endCrossing edge,
+              leftRegion = regionChange $ leftRegion edge,
+              rightRegion = regionChange $ rightRegion edge,
+              component = componentChange $ component edge
             }
+
+--The number of times the given edge meets the crossing with the given index. Is either 0, 1 or 2.
+crossingMeetingNumber :: (Eq vertexIndex) => Edge vertexIndex regionIndex componentIndex -> vertexIndex -> Int
+crossingMeetingNumber edge crossingIndex = length $ filter (==crossingIndex) [startCrossing edge, endCrossing edge]
+

@@ -8,6 +8,8 @@ import qualified LinkDiagram.Component as Component
 
 import qualified Data.IntMap as IMap
 
+import Data.Maybe(fromJust,isNothing)
+
 --The internal construction of a link diagram in terms of
 -- maps of integers to the various aspects crossings, edges etc.
 --This is kept internal to not expose the underlying data structure and so (within any link) 
@@ -85,3 +87,34 @@ data LinkDiagramData = LinkDiagramData {
 -- Ie the vertices, edges etc refered to by indices always exist
 isValidLinkDiagram :: LinkDiagramData -> Bool
 isValidLinkDiagram = undefined
+
+--Check that each corssing in the link is valid as above.
+--
+isValidCrossings :: LinkDiagramData -> Bool
+isValidCrossings link = all isValidCrossing . IMap.assocs $ crossings link
+  where --Lookup an edge in the link from it's index wraps in maybe for failure
+        lookupEdge edgeIndex = IMap.lookup edgeIndex $ edges link
+        --Determine if a given edge is valid
+        isValidCrossing (vertexIndex,crossing) 
+                    | isNothing crossingEdgesM = False -- We require all of the indices to be in the map.
+                    -- The first incoming edge must be incoming so it's end crossing must be this crossing
+                    | Edge.endCrossing firstIncomingEdge /= vertexIndex = False
+                    --If an all edges which meets the crossing must meet it the correct number of times
+                    | not . all edgeMeetingNumbersMatch $ zip edgeIndices crossingEdges = False
+                    --The region meetings must be valid
+                    | not regionMeetingValid = False
+                    | otherwise = True
+           where --Get the 4 edges that meet the crossing clockwise from the first undercrossing 
+                 --with some repeats due to loops
+                 -- This is wrapped in a maybe and is nothing if any of the indices fail
+                 edgeIndices = Crossing.edgeIndices crossing
+                 crossingEdgesM = sequence $ map lookupEdge edgeIndices
+                 --This is valid as we guard against nothing
+                 crossingEdges = fromJust crossingEdgesM
+                 --The first incomming edge
+                 firstIncomingEdge = head crossingEdges
+                 --If a given edge meeting number with a crossing is the same as the meeting number of a crossing to an edge.
+                 edgeMeetingNumbersMatch (edgeIndex, edge) = (Crossing.edgeMeetingNumber crossing edgeIndex) 
+                                                             == (Edge.crossingMeetingNumber edge vertexIndex)
+                 --Do the region meetings match as required TODO
+                 regionMeetingValid = undefined

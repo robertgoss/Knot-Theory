@@ -27,3 +27,19 @@ data Crossing edgeIndex
 -- The index changing function needs to be bijective.
 indexChange :: (edgeIndex1 -> edgeIndex2) -> Crossing edgeIndex1 -> Crossing edgeIndex2
 indexChange = fmap
+
+--Get the edge indices appearing in the crossing in clockwise order from the 
+-- first undercrossing edge. There may be duplicates due to loops.
+--This is how the crossing appears in a planar diagram.
+edgeIndices :: Crossing edgeindex -> [edgeindex]
+edgeIndices (Crossing e1 e2 e3 e4) = [e1,e2,e3,e4]
+edgeIndices (LoopCrossingTL loop e1 e2) = [e1,loop,loop,e2]
+edgeIndices (LoopCrossingTR loop e1 e2) = [e1,e2,loop,loop]
+edgeIndices (LoopCrossingBL loop e1 e2) = [loop,loop,e1,e2]
+edgeIndices (LoopCrossingBR loop e1 e2) = [loop,e1,e2,loop]
+edgeIndices (DoubleLoopL loop1 loop2) = [loop1,loop1,loop2,loop2]
+edgeIndices (DoubleLoopR loop1 loop2) = [loop1,loop2,loop2,loop1]
+
+--The number of times the crossing meets an edge given by an index. Is given by 0, 1 or 2
+edgeMeetingNumber :: (Eq edgeindex) => Crossing edgeindex -> edgeindex -> Int
+edgeMeetingNumber crossing edgeIndex = length . filter (==edgeIndex) $ edgeIndices crossing 
