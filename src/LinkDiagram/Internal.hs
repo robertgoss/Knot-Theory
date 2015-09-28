@@ -94,7 +94,7 @@ isValidCrossings :: LinkDiagramData -> Bool
 isValidCrossings link = all isValidCrossing . IMap.assocs $ crossings link
   where --Lookup an edge in the link from it's index wraps in maybe for failure
         lookupEdge edgeIndex = IMap.lookup edgeIndex $ edges link
-        --Determine if a given edge is valid
+        --Determine if a given crossing is valid
         isValidCrossing (vertexIndex,crossing) 
                     | isNothing crossingEdgesM = False -- We require all of the indices to be in the map.
                     -- The first incoming edge must be incoming so it's end crossing must be this crossing
@@ -129,3 +129,44 @@ isValidCrossings link = all isValidCrossing . IMap.assocs $ crossings link
                                                && Edge.rightRegion (crossingEdges !! 0) == Edge.rightRegion (crossingEdges !! 3)
                                                && Edge.leftRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 1)
                                                && Edge.rightRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 3)
+
+--Check that each corssing in the link is valid as above.
+--
+isValidEdges :: LinkDiagramData -> Bool
+isValidEdges link = all isValidEdge . IMap.assocs $ edges link
+  where --Lookup a crossing, component or region in the link from it's index wraps in maybe for failure
+        lookupCrossing vertexIndex = IMap.lookup vertexIndex $ crossings link
+        lookupRegion regionIndex = IMap.lookup regionIndex $ regions link
+        lookupComponent componentIndex = IMap.lookup componentIndex $ components link
+        --Determine if a given edge is valid
+        isValidEdge (edgeIndex, edge)
+                    | isNothing crossingsM = False --Both crossings indexed shoud be in the link
+                    | isNothing regionsM = False --Both regions indexed shoud be in the link
+                    | isNothing componentM = False -- The component indexed should be non zero
+                    | leftRegion == rightRegion = False -- The left and right regions should be distinct
+                    | not edgeInComponentPath = False -- The edge should be in the path of it's component
+                    | not $ edgeIndex `elem` (Crossing.edgeIndices startCrossing) = False -- The edge should be in it's start crossing
+                    | not $ edgeIndex `elem` (Crossing.edgeIndices endCrossing) = False -- The edge should be in it's end crossing
+                    | not $ Region.edgeInBounds leftRegion edgeIndex = False -- The edge should bound its left region
+                    | not $ Region.edgeInBounds rightRegion edgeIndex = False -- The edge should bound its right region
+                    | otherwise = True -- All conditions met
+           where --Test we can lookup both start and end crossings
+                 -- This is wrapped in a maybe and is nothing if any of the indices fail
+                 crossingsM = sequence $ map lookupCrossing [Edge.startCrossing edge, Edge.endCrossing edge]
+                 --This is safe as we guard against failure
+                 [startCrossing, endCrossing] = fromJust crossingsM
+                 --Test we can lookup both left and right regions
+                 -- This is wrapped in a maybe and is nothing if any of the indices fail
+                 regionsM = sequence $ map lookupRegion [Edge.leftRegion edge, Edge.rightRegion edge]
+                 --This is safe as we guard against failure
+                 [leftRegion, rightRegion] = fromJust regionsM
+                 --Test we can lookup the indexed component
+                 -- This is wrapped in a maybe and is nothing if any of the indices fail
+                 componentM = lookupComponent $ Edge.component edge
+                 --This is safe as we guard against failure
+                 component = fromJust componentM
+                 --This component is a path and it contains this edgeIndex
+                 edgeInComponentPath = case component of
+                                          (Component.UnknottedComponent _) -> False
+                                          (Component.PathComponent pathIndices) -> edgeIndex `elem` pathIndices
+
