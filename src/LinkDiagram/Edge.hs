@@ -36,3 +36,6 @@ indexChange vertexChange regionChange componentChange edge
 crossingMeetingNumber :: (Eq vertexIndex) => Edge vertexIndex regionIndex componentIndex -> vertexIndex -> Int
 crossingMeetingNumber edge crossingIndex = length $ filter (==crossingIndex) [startCrossing edge, endCrossing edge]
 
+--Does the given edge meet a region with given index
+meetsRegion :: (Eq regionIndex) => regionIndex -> Edge vertexIndex regionIndex componentIndex -> Bool
+meetsRegion regionIndex edge = (regionIndex == leftRegion edge) || (regionIndex == rightRegion edge)

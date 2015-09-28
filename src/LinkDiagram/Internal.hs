@@ -7,8 +7,10 @@ import qualified LinkDiagram.Region as Region
 import qualified LinkDiagram.Component as Component
 
 import qualified Data.IntMap as IMap
+import qualified Data.Set as Set
 
 import Data.Maybe(fromJust,isNothing)
+
 
 --The internal construction of a link diagram in terms of
 -- maps of integers to the various aspects crossings, edges etc.
@@ -198,3 +200,33 @@ isValidUnknots link = all isValidUnknot . IMap.assocs $ unknots link
                  unknotInComponent = case component of
                                         (Component.PathComponent _) -> False
                                         (Component.UnknottedComponent componentUnknotIndex) -> componentUnknotIndex == unknotIndex
+
+--Check that each region in the link is valid as above.
+--
+isValidRegions :: LinkDiagramData -> Bool
+isValidRegions link = all isValidRegion . IMap.assocs $ regions link
+  where --Lookup a component or region in the link from it's index wraps in maybe for failure
+        lookupUnknot unknotIndex = IMap.lookup unknotIndex $ unknots link
+        lookupEdge edgeIndex = IMap.lookup edgeIndex $ edges link
+        --Determine if a given edge is valid
+        isValidRegion (regionIndex, region)
+            | isNothing unknotsM = False --All the bounding unnots indexed shoud be in the link
+            | isNothing boundEdgesM = False --All the bunding edges indexed should be in the link
+            | length edges /= Set.size (Set.fromList edges) = False --No edge should appear in 2 bounding edges
+            | not $ all (Unknot.meetsRegion regionIndex) unknots  = False --Each unknot that bounds region should meet it
+            | not $ all (Edge.meetsRegion regionIndex) edges  = False -- Each edge that is in a set that bounds region should meet it
+            | otherwise = True -- All conditions met.
+          where --Test we can lookup the indexed unknots
+                -- This is wrapped in a maybe and is nothing if any of the indices fail
+                --Convert set to list
+                unknotsM = sequence . map lookupUnknot . Set.toList $ Region.regionUnknots region
+                --This is safe as we guard against failure
+                unknots = fromJust unknotsM
+                --Test we can lookup the indexed bounding edges
+                -- This is wrapped in a maybe and is nothing if any of the indices fail
+                --Convert the sets into list and lookup the indices.
+                boundEdgesM = sequence . map (sequence . map lookupEdge . Set.toList) . Set.toList $ Region.regionEdges region
+                --This is safe as we guard against failure
+                boundEdges = fromJust boundEdgesM
+                --Get all the edges in the which bounds this region
+                edges = concat boundEdges

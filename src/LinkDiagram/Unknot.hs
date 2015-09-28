@@ -19,3 +19,7 @@ indexChange changeRegion changeComponent unknot = Unknot {
                                                     rightRegion = changeRegion (rightRegion unknot),
                                                     component = changeComponent (component unknot)
                                                    }
+
+--Does the given unknot meet a region with given index
+meetsRegion :: (Eq regionIndex) => regionIndex -> Unknot regionIndex componentIndex -> Bool
+meetsRegion regionIndex unknot = (regionIndex == leftRegion unknot) || (regionIndex == rightRegion unknot)
