@@ -87,7 +87,11 @@ data LinkDiagramData = LinkDiagramData {
 -- Which are that and vertex, edges etc index mentioned in a vertex, edge, etc is in the respective table.
 -- Ie the vertices, edges etc refered to by indices always exist
 isValidLinkDiagram :: LinkDiagramData -> Bool
-isValidLinkDiagram = undefined
+isValidLinkDiagram link =  isValidCrossings link
+                        && isValidEdges link
+                        && isValidUnknots link
+                        && isValidRegions link
+                        && isValidComponents link
 
 --Check that each corssing in the link is valid as above.
 --
@@ -234,13 +238,13 @@ isValidRegions link = all isValidRegion . IMap.assocs $ regions link
 
 --Check that each component in the link is valid as above.
 --
-isValidComponent :: LinkDiagramData -> Bool
-isValidComponent link = all isComponentRegion . IMap.assocs $ components link
+isValidComponents :: LinkDiagramData -> Bool
+isValidComponents link = all isValidComponent . IMap.assocs $ components link
   where --Lookup a unknot, edge or crossing in the link from it's index wraps in maybe for failure
         lookupUnknot unknotIndex = IMap.lookup unknotIndex $ unknots link
         lookupEdge edgeIndex = IMap.lookup edgeIndex $ edges link
         lookupCrossing crossingIndex = IMap.lookup crossingIndex $ crossings link
-        isComponentRegion (componentIndex,(Component.UnknottedComponent unknotIndex))
+        isValidComponent (componentIndex,(Component.UnknottedComponent unknotIndex))
                  | isNothing unknotM = False --The unknot of this unknotted component should be in the link
                  | Unknot.component unknot == componentIndex = False --The component of the unknot should be this component
                  | otherwise = True
@@ -251,7 +255,7 @@ isValidComponent link = all isComponentRegion . IMap.assocs $ components link
                 unknotM = lookupUnknot unknotIndex
                 --This is safe as we guard against failure
                 unknot = fromJust unknotM
-        isComponentRegion (componentIndex,(Component.PathComponent edgeIndices))
+        isValidComponent (componentIndex,(Component.PathComponent edgeIndices))
                  | isNothing edgesM = False --The edges of this path component should be in the link
                  | not . all (== componentIndex) $ map Edge.component edges = False --The component of the edges should be this component
                  | not $ all sequentialEdges sequentialPairs = False --Each sequential pair of edges should be sequenctial
