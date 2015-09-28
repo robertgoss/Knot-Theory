@@ -17,6 +17,10 @@ data Region edgeIndex unknotIndex = Region {
 edgeInBounds :: (Ord edgeIndex) => Region edgeIndex unknotIndex -> edgeIndex -> Bool
 edgeInBounds region edgeIndex = any (Set.member edgeIndex) . Set.toList $ regionEdges region
 
+--Returns if a given unknotIndex is in the boundary of the given region
+unknotInBounds :: (Ord unknotIndex) => Region edgeIndex unknotIndex -> unknotIndex -> Bool
+unknotInBounds region unknotIndex = Set.member unknotIndex $ regionUnknots region
+
 --Change the index types used in region
 -- Both index changing functions need to be bijective.
 -- Pass the index changing function though the set constructors.

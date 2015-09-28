@@ -33,8 +33,7 @@ type Crossing = Crossing.Crossing EdgeIndex
 type Edge = Edge.Edge VertexIndex RegionIndex ComponentIndex
 
 --The type of internal unknotted components using interger index
-type Unknot = Unknot.Unknot RegionIndex
-
+type Unknot = Unknot.Unknot RegionIndex ComponentIndex
 
 --The type of internal regions using integer indices
 type Region = Region.Region EdgeIndex UnknotIndex
@@ -70,13 +69,13 @@ data LinkDiagramData = LinkDiagramData {
 -- For each unknot
 --  - Each region the unknot meets has that unknot in one of its boundaries.
 --  - The 2 regions which meet the unknot are distinct.
---  - One of the regions is bounded only be this unknot.
---  - Their exists a unique component which is this unknot.
+--  - The component is an unknot component with this as it's unknot.
 -- For each region
 --  - Each unknot in the boundary of the region meets this unknot.
 --  - Each edge in a boundary of the region meets the region.
 --  - No two edges in different boundaries of the region can be equal.
 -- For each component
+--  - If this is a unknot component the unknot has his as it's component.
 --  - If this is a path component then for each edge in the path has this as a component
 --  - If this is a path component then for any sequential pair of edges in the path
 --       the end crossing of the first and start crossing of the second are the same
@@ -130,7 +129,7 @@ isValidCrossings link = all isValidCrossing . IMap.assocs $ crossings link
                                                && Edge.leftRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 1)
                                                && Edge.rightRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 3)
 
---Check that each corssing in the link is valid as above.
+--Check that each edge in the link is valid as above.
 --
 isValidEdges :: LinkDiagramData -> Bool
 isValidEdges link = all isValidEdge . IMap.assocs $ edges link
@@ -142,7 +141,7 @@ isValidEdges link = all isValidEdge . IMap.assocs $ edges link
         isValidEdge (edgeIndex, edge)
                     | isNothing crossingsM = False --Both crossings indexed shoud be in the link
                     | isNothing regionsM = False --Both regions indexed shoud be in the link
-                    | isNothing componentM = False -- The component indexed should be non zero
+                    | isNothing componentM = False -- The component indexed should be in the link
                     | leftRegion == rightRegion = False -- The left and right regions should be distinct
                     | not edgeInComponentPath = False -- The edge should be in the path of it's component
                     | not $ edgeIndex `elem` (Crossing.edgeIndices startCrossing) = False -- The edge should be in it's start crossing
@@ -170,3 +169,32 @@ isValidEdges link = all isValidEdge . IMap.assocs $ edges link
                                           (Component.UnknottedComponent _) -> False
                                           (Component.PathComponent pathIndices) -> edgeIndex `elem` pathIndices
 
+--Check that each unknot in the link is valid as above.
+--
+isValidUnknots :: LinkDiagramData -> Bool
+isValidUnknots link = all isValidUnknot . IMap.assocs $ unknots link
+  where --Lookup a component or region in the link from it's index wraps in maybe for failure
+        lookupRegion regionIndex = IMap.lookup regionIndex $ regions link
+        lookupComponent componentIndex = IMap.lookup componentIndex $ components link
+        --Determine if a given edge is valid
+        isValidUnknot (unknotIndex, unknot)
+                      | isNothing regionsM = False --Both regions indexed shoud be in the link
+                      | isNothing componentM = False --The component indexed shoud be in the link
+                      | not $ Region.unknotInBounds leftRegion unknotIndex = False -- The unknot should bound it's left region
+                      | not $ Region.unknotInBounds rightRegion unknotIndex = False -- The unknot should bound it's right region
+                      | unknotInComponent = False -- The unknot's component should be an unknot component linking to this one
+                      | otherwise = True
+           where --Test we can lookup both left and right regions
+                 -- This is wrapped in a maybe and is nothing if any of the indices fail
+                 regionsM = sequence $ map lookupRegion [Unknot.leftRegion unknot, Unknot.rightRegion unknot]
+                 --This is safe as we guard against failure
+                 [leftRegion, rightRegion] = fromJust regionsM
+                 --Test we can lookup the indexed component
+                 -- This is wrapped in a maybe and is nothing if any of the indices fail
+                 componentM = lookupComponent $ Unknot.component unknot
+                 --This is safe as we guard against failure
+                 component = fromJust componentM
+                 --The component is an unknotted component and it's unknot is this one.
+                 unknotInComponent = case component of
+                                        (Component.PathComponent _) -> False
+                                        (Component.UnknottedComponent componentUnknotIndex) -> componentUnknotIndex == unknotIndex

@@ -30,7 +30,7 @@ type Crossing = Crossing.Crossing EdgeIndex
 type Edge = Edge.Edge VertexIndex RegionIndex ComponentIndex
 
 --The type of internal unknotted components using diagram's index
-type Unknot = Unknot.Unknot RegionIndex
+type Unknot = Unknot.Unknot RegionIndex ComponentIndex
 
 --The type of internal regions using diagram's indices
 type Region = Region.Region EdgeIndex UnknotIndex
@@ -99,7 +99,7 @@ edges link (EdgeIndex index) = Edge.indexChange VertexIndex RegionIndex Componen
          edgeInternal = (IMap.!) edgeMap index
 
 unknots :: LinkDiagram -> UnknotIndex -> Unknot
-unknots link (UnknotIndex index) = Unknot.indexChange RegionIndex unknotInternal
+unknots link (UnknotIndex index) = Unknot.indexChange RegionIndex ComponentIndex unknotInternal
    where unknotMap = Internal.unknots $ linkDiagramData link
          unknotInternal = (IMap.!) unknotMap index
 
