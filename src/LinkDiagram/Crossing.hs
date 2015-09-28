@@ -43,3 +43,42 @@ edgeIndices (DoubleLoopR loop1 loop2) = [loop1,loop2,loop2,loop1]
 --The number of times the crossing meets an edge given by an index. Is given by 0, 1 or 2
 edgeMeetingNumber :: (Eq edgeindex) => Crossing edgeindex -> edgeindex -> Int
 edgeMeetingNumber crossing edgeIndex = length . filter (==edgeIndex) $ edgeIndices crossing 
+
+--If a given incoming and outgoing edge meet as opposites in the given crossing
+oppositeEdges :: (Eq edgeIndex) => Crossing edgeIndex -> edgeIndex -> edgeIndex -> Bool
+oppositeEdges (Crossing e1 e2 e3 e4) inEdge outEdge
+                      --Posible combinations on in out opposite pairs - note that e1 is always incoming
+                      | e1 == inEdge && e3 == outEdge = True
+                      | e2 == inEdge && e4 == outEdge = True
+                      | e4 == inEdge && e2 == outEdge = True
+                      | otherwise = False
+oppositeEdges (LoopCrossingTL loop e1 e2) inEdge outEdge
+                      --Posible combinations on in out pairs - note that only 2 possible pairings due to loop
+                      | e1 == inEdge && loop == outEdge = True
+                      | loop == inEdge && e2 == outEdge = True
+                      | otherwise = False
+oppositeEdges (LoopCrossingTR loop e1 e2) inEdge outEdge
+                      --Posible combinations on in out pairs - note that only 2 possible pairings due to loop
+                      | e1 == inEdge && loop == outEdge = True
+                      | loop == inEdge && e2 == outEdge = True
+                      | otherwise = False
+oppositeEdges (LoopCrossingBL loop e1 e2) inEdge outEdge
+                      --Posible combinations on in out pairs - note that only 2 possible pairings due to loop
+                      | loop == inEdge && e1 == outEdge = True
+                      | e2 == inEdge && loop == outEdge = True
+                      | otherwise = False
+oppositeEdges (LoopCrossingBR loop e1 e2) inEdge outEdge
+                      --Posible combinations on in out pairs - note that only 2 possible pairings due to loop
+                      | loop == inEdge && e2 == outEdge = True
+                      | e1 == inEdge && loop == outEdge = True
+                      | otherwise = False
+oppositeEdges (DoubleLoopL loop1 loop2) inEdge outEdge
+                      --Posible combinations on in out pairs - note that only 2 possible pairings due to loop
+                      | loop1 == inEdge && loop2 == outEdge = True
+                      | loop2 == inEdge && loop1 == outEdge = True
+                      | otherwise = False
+oppositeEdges (DoubleLoopR loop1 loop2) inEdge outEdge
+                      --Posible combinations on in out pairs - note that only 2 possible pairings due to loop
+                      | loop1 == inEdge && loop2 == outEdge = True
+                      | loop2 == inEdge && loop1 == outEdge = True
+                      | otherwise = False

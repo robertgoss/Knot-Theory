@@ -230,3 +230,59 @@ isValidRegions link = all isValidRegion . IMap.assocs $ regions link
                 boundEdges = fromJust boundEdgesM
                 --Get all the edges in the which bounds this region
                 edges = concat boundEdges
+
+
+--Check that each component in the link is valid as above.
+--
+isValidComponent :: LinkDiagramData -> Bool
+isValidComponent link = all isComponentRegion . IMap.assocs $ components link
+  where --Lookup a unknot, edge or crossing in the link from it's index wraps in maybe for failure
+        lookupUnknot unknotIndex = IMap.lookup unknotIndex $ unknots link
+        lookupEdge edgeIndex = IMap.lookup edgeIndex $ edges link
+        lookupCrossing crossingIndex = IMap.lookup crossingIndex $ crossings link
+        isComponentRegion (componentIndex,(Component.UnknottedComponent unknotIndex))
+                 | isNothing unknotM = False --The unknot of this unknotted component should be in the link
+                 | Unknot.component unknot == componentIndex = False --The component of the unknot should be this component
+                 | otherwise = True
+              where
+                --Test we can lookup the indexed unknots
+                -- This is wrapped in a maybe and is nothing if any of the indices fail
+                --Convert set to list
+                unknotM = lookupUnknot unknotIndex
+                --This is safe as we guard against failure
+                unknot = fromJust unknotM
+        isComponentRegion (componentIndex,(Component.PathComponent edgeIndices))
+                 | isNothing edgesM = False --The edges of this path component should be in the link
+                 | not . all (== componentIndex) $ map Edge.component edges = False --The component of the edges should be this component
+                 | not $ all sequentialEdges sequentialPairs = False --Each sequential pair of edges should be sequenctial
+                                                                       -- Ie the end edge of the first should be the first edge of the second
+                                                                       -- And they meet opposite in the crossing.
+                 | otherwise = True
+              where
+                --Test we can lookup the indexed unknots
+                -- This is wrapped in a maybe and is nothing if any of the indices fail
+                --Convert set to list
+                edgesM = sequence $ map lookupEdge edgeIndices
+                --This is safe as we guard against failure
+                edges = fromJust edgesM
+                --SEquenctial pairs of edges
+                -- pair of edges and edges shifted by 1
+                --And pairs of indices
+                sequentialEdgePairs = zip edges (tail edges ++ [head edges])
+                sequentialIndexPairs = zip edgeIndices (tail edgeIndices ++ [head edgeIndices])
+                sequentialPairs = zip sequentialEdgePairs sequentialIndexPairs 
+                --Given a pair of edges returns if they are sequential
+                sequentialEdges ((edge1,edge2),(edgeIndex1,edgeIndex2))
+                         | Edge.endCrossing edge1 /= Edge.startCrossing edge2 = False 
+                                                       -- The edges should meet in a common
+                                                       -- crossing the end of the first and start fo the second
+                         | isNothing crossingM = False -- the common edge should be in the link
+                         | not $ Crossing.oppositeEdges crossing edgeIndex1 edgeIndex2 = False 
+                                                       -- The edges should meet as opposites at the common crossing
+                         | otherwise = True -- All conditions met
+                    where --Test we can lookup the indexed unknots
+                          -- This is wrapped in a maybe and is nothing if any of the indices fail
+                          --By guard we know this is common index
+                          crossingM = lookupCrossing $ Edge.endCrossing edge1
+                          --This is safe as we guard against failure
+                          crossing = fromJust crossingM
