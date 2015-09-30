@@ -3,6 +3,7 @@ import Test.KnotDiagramTest
 import Test.KnotMorphismTest
 
 import Test.LinkDiagram.CrossingTest
+import Test.LinkDiagram.RegionTest
 
 import Test.Tasty
 
@@ -12,5 +13,6 @@ main = defaultMain tests
 tests :: TestTree
 tests = testGroup "Tests" [testKnotDiagram,
                            testKnotMorphism,
-                           testCrossing
+                           testCrossing,
+                           testRegion
                           ]
