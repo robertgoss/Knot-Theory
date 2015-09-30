@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveFunctor #-}
 module LinkDiagram.Crossing where
 
+import qualified Data.Set as Set
+
 --The type of information associated to a crossing in terms of the indices of the edges
 -- This takes into account loops, it edges that start and end at the same crossing 
 -- at this crossing as these are harder to orient in code.
@@ -28,6 +30,29 @@ data Crossing edgeIndex
 indexChange :: (edgeIndex1 -> edgeIndex2) -> Crossing edgeIndex1 -> Crossing edgeIndex2
 indexChange = fmap
 
+--Construct a crossing from a quadruple of edgeIndices
+--Wraps in a maybe incase the corssing is locally invalid
+fromEdges :: (Ord edgeIndex) => (edgeIndex,edgeIndex,edgeIndex,edgeIndex) -> Maybe (Crossing edgeIndex)
+fromEdges (e1,e2,e3,e4) --Switch on number of loops to save laborious checks in canonical case
+    | distinctNum == 4 = Just $ Crossing e1 e2 e3 e4 --All edges distinct
+    | distinctNum == 3 = fromSingleLoop -- We have a single loop
+    | distinctNum == 2 = fromDoubleLoop -- We have a 2 loops
+    | otherwise = Nothing -- we have an impossible situation
+  where distinctNum = Set.size $ Set.fromList [e1,e2,e3,e4]
+        --We have a single loop find which quadrant we are in
+        fromSingleLoop
+          | e1==e2 = Just $ LoopCrossingBL e1 e3 e4
+          | e2==e3 = Just $ LoopCrossingTL e2 e1 e4
+          | e3==e4 = Just $ LoopCrossingTR e3 e1 e2
+          | e4==e1 = Just $ LoopCrossingBR e4 e2 e3
+          | otherwise = Nothing --An imposible local situation
+        --We have a double loop check that they form correctly left or right
+        --Check that they both form loops (not 3 of the same type etc)
+        fromDoubleLoop
+         | e1==e2 && e3==e4 = Just $ DoubleLoopL e1 e3
+         | e1==e4 && e2==e3 = Just $ DoubleLoopR e1 e2
+         | otherwise = Nothing -- An imposible local situation
+         
 --Get the edge indices appearing in the crossing in clockwise order from the 
 -- first undercrossing edge. There may be duplicates due to loops.
 --This is how the crossing appears in a planar diagram.
