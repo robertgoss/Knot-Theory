@@ -10,11 +10,31 @@ import Test.Tasty.HUnit
 
 
 --Test Crossing module
+--Reduce the depth to 3 as crossing expands quickly and this is sufficient.
 testCrossing :: TestTree
-testCrossing = testGroup "Test Crossing" [ testEdgeIndicies,
-                                           testFromEdges,
-                                           testMeetingNumber,
-                                           testOpposite]
+testCrossing = localOption (SmallCheckDepth 3) $
+                         testGroup "Test Crossing" [ testSmallcheck,
+                                                     testEdgeIndicies,
+                                                     testFromEdges,
+                                                     testMeetingNumber,
+                                                     testOpposite]
+--TestSmallSmallcheck
+--Make sure all the smallcheck crossings are valid
+testSmallcheck :: TestTree
+testSmallcheck = testGroup "Test smallcheck instance" [testSmallcheckValid]
+
+testSmallcheckValid :: TestTree
+testSmallcheckValid = SC.testProperty "All crossing should be valid with distinct properties" testDistinctProp'
+  where testDistinctProp' :: TestingCrossing Int -> Bool
+        testDistinctProp' = testDistinctProp . tCrossing
+        testDistinctProp (Crossing e1 e2 e3 e4) = not $ all (==e1) [e2,e3,e4]
+        testDistinctProp (LoopCrossingTL loop e1 e2) = not $ all (==loop) [e1,e2]
+        testDistinctProp (LoopCrossingTR loop e1 e2) = not $ all (==loop) [e1,e2]
+        testDistinctProp (LoopCrossingBL loop e1 e2) = not $ all (==loop) [e1,e2]
+        testDistinctProp (LoopCrossingBR loop e1 e2) = not $ all (==loop) [e1,e2]
+        testDistinctProp (DoubleLoopL loop1 loop2) = loop1 /= loop2
+        testDistinctProp (DoubleLoopR loop1 loop2) = loop1 /= loop2
+        
 
 --Test edgeIndices
 testEdgeIndicies :: TestTree
