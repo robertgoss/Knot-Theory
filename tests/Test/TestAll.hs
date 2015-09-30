@@ -4,6 +4,7 @@ import Test.KnotMorphismTest
 
 import Test.LinkDiagram.CrossingTest
 import Test.LinkDiagram.RegionTest
+import Test.LinkDiagram.UnknotTest
 
 import Test.Tasty
 
@@ -14,5 +15,6 @@ tests :: TestTree
 tests = testGroup "Tests" [testKnotDiagram,
                            testKnotMorphism,
                            testCrossing,
-                           testRegion
+                           testRegion,
+                           testUnknot
                           ]
