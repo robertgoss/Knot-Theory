@@ -95,14 +95,15 @@ tRegion (TRegion r) = r
 instance (Ord edgeIndex, Ord unknotIndex, Serial m edgeIndex, Serial m unknotIndex) 
           => Serial m (TestingRegion edgeIndex unknotIndex) where
    series = liftM TRegion $ cons2 listRegionConstructor
-     where listRegionConstructor listEdges listUnknots = Region (Set.fromList setEdges) setUnknots
+     where listRegionConstructor listEdges listUnknots = Region setEdgeSets setUnknots
              where setUnknots = Set.fromList listUnknots --Covert list to set
                    edgeSets = map Set.fromList listEdges -- List of sets of edges
-                   setEdges = snd $ foldl distinctSets (Set.empty, []) edgeSets -- make each of the sets distinct
+                   distinctEdgeSets = snd $ foldl distinctSets (Set.empty, []) edgeSets -- make each of the sets distinct
                    --Keep a running union of sets and for each set take difference with this running union
                    distinctSets (union, partialSets) nextSet = (newUnion, nextDistinctSet : partialSets)
                       where newUnion = Set.union union nextSet
                             nextDistinctSet = Set.difference nextSet union
+                   setEdgeSets = Set.delete Set.empty (Set.fromList distinctEdgeSets) --Convert to set and remove empty set
                             
 --Interface for region
 newtype TestingComponent unknotIndex edgeIndex
