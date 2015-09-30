@@ -113,25 +113,25 @@ isValidCrossings link = all isValidCrossing . IMap.assocs $ crossings link
                  --with some repeats due to loops
                  -- This is wrapped in a maybe and is nothing if any of the indices fail
                  edgeIndices = Crossing.edgeIndices crossing
-                 crossingEdgesM = sequence $ map lookupEdge edgeIndices
+                 crossingEdgesM = mapM lookupEdge edgeIndices
                  --This is valid as we guard against nothing
                  crossingEdges = fromJust crossingEdgesM
                  --The first incomming edge
                  firstIncomingEdge = head crossingEdges
                  --If a given edge meeting number with a crossing is the same as the meeting number of a crossing to an edge.
-                 edgeMeetingNumbersMatch (edgeIndex, edge) = (Crossing.edgeMeetingNumber crossing edgeIndex) 
-                                                             == (Edge.crossingMeetingNumber edge vertexIndex)
+                 edgeMeetingNumbersMatch (edgeIndex, edge) = Crossing.edgeMeetingNumber crossing edgeIndex
+                                                             == Edge.crossingMeetingNumber edge vertexIndex
                  --Do the region meetings match as required
                  -- Sort out the connections of edges based on if the crossing is positive or negative 
                  -- Ie if the second edge is incoming or outgoing . positive is outgoing.
                  positive = Edge.startCrossing (crossingEdges !! 1) == vertexIndex
-                 regionMeetingValid | positive =  Edge.leftRegion (crossingEdges !! 0) == Edge.leftRegion (crossingEdges !! 1)
-                                               && Edge.rightRegion (crossingEdges !! 0) == Edge.leftRegion (crossingEdges !! 3)
+                 regionMeetingValid | positive =  Edge.leftRegion (head crossingEdges) == Edge.leftRegion (crossingEdges !! 1)
+                                               && Edge.rightRegion (head crossingEdges) == Edge.leftRegion (crossingEdges !! 3)
                                                && Edge.leftRegion (crossingEdges !! 2) == Edge.rightRegion (crossingEdges !! 1)
                                                && Edge.rightRegion (crossingEdges !! 2) == Edge.rightRegion (crossingEdges !! 3)
 
-                                    | otherwise = Edge.leftRegion (crossingEdges !! 0) == Edge.rightRegion (crossingEdges !! 1)
-                                               && Edge.rightRegion (crossingEdges !! 0) == Edge.rightRegion (crossingEdges !! 3)
+                                    | otherwise = Edge.leftRegion (head crossingEdges) == Edge.rightRegion (crossingEdges !! 1)
+                                               && Edge.rightRegion (head crossingEdges) == Edge.rightRegion (crossingEdges !! 3)
                                                && Edge.leftRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 1)
                                                && Edge.rightRegion (crossingEdges !! 2) == Edge.leftRegion (crossingEdges !! 3)
 
@@ -150,19 +150,19 @@ isValidEdges link = all isValidEdge . IMap.assocs $ edges link
                     | isNothing componentM = False -- The component indexed should be in the link
                     | leftRegion == rightRegion = False -- The left and right regions should be distinct
                     | not edgeInComponentPath = False -- The edge should be in the path of it's component
-                    | not $ edgeIndex `elem` (Crossing.edgeIndices startCrossing) = False -- The edge should be in it's start crossing
-                    | not $ edgeIndex `elem` (Crossing.edgeIndices endCrossing) = False -- The edge should be in it's end crossing
+                    | edgeIndex `notElem` Crossing.edgeIndices startCrossing = False -- The edge should be in it's start crossing
+                    | edgeIndex `notElem` Crossing.edgeIndices endCrossing = False -- The edge should be in it's end crossing
                     | not $ Region.edgeInBounds leftRegion edgeIndex = False -- The edge should bound its left region
                     | not $ Region.edgeInBounds rightRegion edgeIndex = False -- The edge should bound its right region
                     | otherwise = True -- All conditions met
            where --Test we can lookup both start and end crossings
                  -- This is wrapped in a maybe and is nothing if any of the indices fail
-                 crossingsM = sequence $ map lookupCrossing [Edge.startCrossing edge, Edge.endCrossing edge]
+                 crossingsM = mapM lookupCrossing [Edge.startCrossing edge, Edge.endCrossing edge]
                  --This is safe as we guard against failure
                  [startCrossing, endCrossing] = fromJust crossingsM
                  --Test we can lookup both left and right regions
                  -- This is wrapped in a maybe and is nothing if any of the indices fail
-                 regionsM = sequence $ map lookupRegion [Edge.leftRegion edge, Edge.rightRegion edge]
+                 regionsM = mapM lookupRegion [Edge.leftRegion edge, Edge.rightRegion edge]
                  --This is safe as we guard against failure
                  [leftRegion, rightRegion] = fromJust regionsM
                  --Test we can lookup the indexed component
@@ -192,7 +192,7 @@ isValidUnknots link = all isValidUnknot . IMap.assocs $ unknots link
                       | otherwise = True
            where --Test we can lookup both left and right regions
                  -- This is wrapped in a maybe and is nothing if any of the indices fail
-                 regionsM = sequence $ map lookupRegion [Unknot.leftRegion unknot, Unknot.rightRegion unknot]
+                 regionsM = mapM lookupRegion [Unknot.leftRegion unknot, Unknot.rightRegion unknot]
                  --This is safe as we guard against failure
                  [leftRegion, rightRegion] = fromJust regionsM
                  --Test we can lookup the indexed component
@@ -216,24 +216,24 @@ isValidRegions link = all isValidRegion . IMap.assocs $ regions link
         isValidRegion (regionIndex, region)
             | isNothing unknotsM = False --All the bounding unnots indexed shoud be in the link
             | isNothing boundEdgesM = False --All the bunding edges indexed should be in the link
-            | length edges /= Set.size (Set.fromList edges) = False --No edge should appear in 2 bounding edges
-            | not $ all (Unknot.meetsRegion regionIndex) unknots  = False --Each unknot that bounds region should meet it
-            | not $ all (Edge.meetsRegion regionIndex) edges  = False -- Each edge that is in a set that bounds region should meet it
+            | length edges' /= Set.size (Set.fromList edges') = False --No edge should appear in 2 bounding edges
+            | not $ all (Unknot.meetsRegion regionIndex) unknots'  = False --Each unknot that bounds region should meet it
+            | not $ all (Edge.meetsRegion regionIndex) edges'  = False -- Each edge that is in a set that bounds region should meet it
             | otherwise = True -- All conditions met.
           where --Test we can lookup the indexed unknots
                 -- This is wrapped in a maybe and is nothing if any of the indices fail
                 --Convert set to list
-                unknotsM = sequence . map lookupUnknot . Set.toList $ Region.regionUnknots region
+                unknotsM = mapM lookupUnknot . Set.toList $ Region.regionUnknots region
                 --This is safe as we guard against failure
-                unknots = fromJust unknotsM
+                unknots' = fromJust unknotsM
                 --Test we can lookup the indexed bounding edges
                 -- This is wrapped in a maybe and is nothing if any of the indices fail
                 --Convert the sets into list and lookup the indices.
-                boundEdgesM = sequence . map (sequence . map lookupEdge . Set.toList) . Set.toList $ Region.regionEdges region
+                boundEdgesM = mapM (mapM lookupEdge . Set.toList) . Set.toList $ Region.regionEdges region
                 --This is safe as we guard against failure
                 boundEdges = fromJust boundEdgesM
                 --Get all the edges in the which bounds this region
-                edges = concat boundEdges
+                edges' = concat boundEdges
 
 
 --Check that each component in the link is valid as above.
@@ -244,7 +244,7 @@ isValidComponents link = all isValidComponent . IMap.assocs $ components link
         lookupUnknot unknotIndex = IMap.lookup unknotIndex $ unknots link
         lookupEdge edgeIndex = IMap.lookup edgeIndex $ edges link
         lookupCrossing crossingIndex = IMap.lookup crossingIndex $ crossings link
-        isValidComponent (componentIndex,(Component.UnknottedComponent unknotIndex))
+        isValidComponent (componentIndex,Component.UnknottedComponent unknotIndex)
                  | isNothing unknotM = False --The unknot of this unknotted component should be in the link
                  | Unknot.component unknot == componentIndex = False --The component of the unknot should be this component
                  | otherwise = True
@@ -255,9 +255,9 @@ isValidComponents link = all isValidComponent . IMap.assocs $ components link
                 unknotM = lookupUnknot unknotIndex
                 --This is safe as we guard against failure
                 unknot = fromJust unknotM
-        isValidComponent (componentIndex,(Component.PathComponent edgeIndices))
+        isValidComponent (componentIndex,Component.PathComponent edgeIndices)
                  | isNothing edgesM = False --The edges of this path component should be in the link
-                 | not . all (== componentIndex) $ map Edge.component edges = False --The component of the edges should be this component
+                 | not . all (== componentIndex) $ map Edge.component edges' = False --The component of the edges should be this component
                  | not $ all sequentialEdges sequentialPairs = False --Each sequential pair of edges should be sequenctial
                                                                        -- Ie the end edge of the first should be the first edge of the second
                                                                        -- And they meet opposite in the crossing.
@@ -266,13 +266,13 @@ isValidComponents link = all isValidComponent . IMap.assocs $ components link
                 --Test we can lookup the indexed unknots
                 -- This is wrapped in a maybe and is nothing if any of the indices fail
                 --Convert set to list
-                edgesM = sequence $ map lookupEdge edgeIndices
+                edgesM = mapM lookupEdge edgeIndices
                 --This is safe as we guard against failure
-                edges = fromJust edgesM
+                edges' = fromJust edgesM
                 --SEquenctial pairs of edges
                 -- pair of edges and edges shifted by 1
                 --And pairs of indices
-                sequentialEdgePairs = zip edges (tail edges ++ [head edges])
+                sequentialEdgePairs = zip edges' (tail edges' ++ [head edges'])
                 sequentialIndexPairs = zip edgeIndices (tail edgeIndices ++ [head edgeIndices])
                 sequentialPairs = zip sequentialEdgePairs sequentialIndexPairs 
                 --Given a pair of edges returns if they are sequential
