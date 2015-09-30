@@ -3,9 +3,16 @@ module Test.LinkDiagram.TestingInterface where
 
 import Test.SmallCheck.Series
 
+import qualified Data.Set as Set
+
 import Control.Monad(liftM)
+import Control.Applicative
 
 import LinkDiagram.Crossing
+import LinkDiagram.Edge
+import LinkDiagram.Region
+import LinkDiagram.Unknot
+import LinkDiagram.Component
 
 --Testing interfaces for using smallcheck and quickcheck without either orphan instances
 -- Or defining these instances in main library
@@ -31,7 +38,98 @@ instance (Distinct edgeIndex, Serial m edgeIndex) => Serial m (TestingCrossing e
                                \/ consDistinct3 LoopCrossingBR
                                \/ consDistinct2 DoubleLoopL
                                \/ consDistinct2 DoubleLoopR
-                
+                               
+--Interface for edge
+
+newtype TestingEdge vertexIndex regionIndex componentIndex
+                                = TEdge (Edge vertexIndex regionIndex componentIndex) deriving(Eq,Ord,Show)
+
+tEdge :: TestingEdge vertexIndex regionIndex componentIndex -> Edge vertexIndex regionIndex componentIndex
+tEdge (TEdge e) = e
+
+--Instance for small check
+--use cons to wrap the construct
+--Alter the constructor as the 2 regions need to be distinct#
+--And lift to testing
+
+instance (Distinct regionIndex, Serial m vertexIndex, Serial m regionIndex, Serial m componentIndex) 
+          => Serial m (TestingEdge vertexIndex regionIndex componentIndex) where
+    series = liftM TEdge $ cons5 distinctEdgeConstruct
+        where distinctEdgeConstruct edge1 edge2 region1 region2 
+                           = Edge edge1 edge2 region1 distinctRegion
+                  where distinctRegion = if region1 /= region2 then region2 else newElement [region1]
+                  
+--Interface for unknot
+
+newtype TestingUnknot regionIndex componentIndex
+                                = TUnknot (Unknot regionIndex componentIndex) deriving(Eq,Ord,Show)
+
+tUnknot :: TestingUnknot regionIndex componentIndex -> Unknot regionIndex componentIndex
+tUnknot (TUnknot u) = u
+
+--Instance for small check
+--use cons to wrap the construct
+--Alter the constructor as the 2 regions need to be distinct
+--And lift to testing
+
+instance (Distinct regionIndex, Serial m regionIndex, Serial m componentIndex) 
+          => Serial m (TestingUnknot regionIndex componentIndex) where
+    series = liftM TUnknot $ cons3 distinctUnknotConstruct
+        where distinctUnknotConstruct region1 region2 
+                           = Unknot region1 distinctRegion
+                  where distinctRegion = if region1 /= region2 then region2 else newElement [region1]  
+     
+--Interface for region
+newtype TestingRegion edgeIndex unknotIndex
+                                = TRegion (Region edgeIndex unknotIndex) deriving(Eq,Ord,Show)
+
+tRegion :: TestingRegion edgeIndex unknotIndex -> Region edgeIndex unknotIndex
+tRegion (TRegion r) = r
+
+--Smallcheck instance for region
+--Use cons to wrap the constructor 
+--Alter the constructor to use lists
+--The edge boundaries should be distinct.
+--And lift to testing
+
+instance (Ord edgeIndex, Ord unknotIndex, Serial m edgeIndex, Serial m unknotIndex) 
+          => Serial m (TestingRegion edgeIndex unknotIndex) where
+   series = liftM TRegion $ cons2 listRegionConstructor
+     where listRegionConstructor listEdges listUnknots = Region (Set.fromList setEdges) setUnknots
+             where setUnknots = Set.fromList listUnknots --Covert list to set
+                   edgeSets = map Set.fromList listEdges -- List of sets of edges
+                   setEdges = snd $ foldl distinctSets (Set.empty, []) edgeSets -- make each of the sets distinct
+                   --Keep a running union of sets and for each set take difference with this running union
+                   distinctSets (union, partialSets) nextSet = (newUnion, nextDistinctSet : partialSets)
+                      where newUnion = Set.union union nextSet
+                            nextDistinctSet = Set.difference nextSet union
+                            
+--Interface for region
+newtype TestingComponent unknotIndex edgeIndex
+                                = TComponent (Component unknotIndex edgeIndex) deriving(Eq,Ord,Show)
+
+tComponent :: TestingComponent unknotIndex edgeIndex -> Component unknotIndex edgeIndex
+tComponent (TComponent c) = c               
+
+--Smallcheck instance for component
+--Use cons to wrap the constructor 
+--Alter constructor so path component is irredundant
+--And lift to testing
+instance (Ord edgeIndex, Serial m edgeIndex, Serial m unknotIndex) 
+          => Serial m (TestingComponent unknotIndex edgeIndex) where
+   series = liftM TComponent $ cons1 UnknottedComponent
+                             \/ cons1 pathComponentIrredundant
+       where pathComponentIrredundant = PathComponent . Set.toList . Set.fromList
+                   
+--Add an extra cons for 5 element constructor
+cons5 ::(Serial m a, Serial m b, Serial m c, Serial m d,Serial m e) 
+        => (a -> b -> c -> d -> e -> f) -> Series m f
+cons5 f = decDepth $  f <$> series
+                        <~> series
+                        <~> series
+                        <~> series
+                        <~> series
+           
 --A class of elements where we can make a distinct extention      
 class (Eq a) => Distinct a where
   --Given a (non-zero) list of elements of a construct an element b
