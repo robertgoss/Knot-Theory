@@ -5,6 +5,8 @@ import Test.KnotMorphismTest
 import Test.LinkDiagram.CrossingTest
 import Test.LinkDiagram.RegionTest
 import Test.LinkDiagram.UnknotTest
+import Test.LinkDiagram.EdgeTest
+import Test.LinkDiagram.ComponentTest
 
 import Test.Tasty
 
@@ -16,5 +18,7 @@ tests = testGroup "Tests" [testKnotDiagram,
                            testKnotMorphism,
                            testCrossing,
                            testRegion,
-                           testUnknot
+                           testUnknot,
+                           testEdge,
+                           testComponent
                           ]
