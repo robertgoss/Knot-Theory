@@ -8,6 +8,8 @@ import Test.LinkDiagram.UnknotTest
 import Test.LinkDiagram.EdgeTest
 import Test.LinkDiagram.ComponentTest
 
+import Test.LinkDiagram.InternalTest
+
 import Test.Tasty
 
 main :: IO()
@@ -20,5 +22,6 @@ tests = testGroup "Tests" [testKnotDiagram,
                            testRegion,
                            testUnknot,
                            testEdge,
-                           testComponent
+                           testComponent,
+                           testInternal
                           ]
