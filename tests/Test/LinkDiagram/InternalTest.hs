@@ -8,13 +8,10 @@ import LinkDiagram.Unknot
 import LinkDiagram.Edge
 import LinkDiagram.Component
 
-import Test.LinkDiagram.TestingInterface
-
 import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
 
 import Test.Tasty
-import Test.Tasty.SmallCheck as SC
 import Test.Tasty.HUnit
 
 --Test internal module
