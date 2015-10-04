@@ -246,7 +246,7 @@ isValidComponents link = all isValidComponent . IMap.assocs $ components link
         lookupCrossing crossingIndex = IMap.lookup crossingIndex $ crossings link
         isValidComponent (componentIndex,Component.UnknottedComponent unknotIndex)
                  | isNothing unknotM = False --The unknot of this unknotted component should be in the link
-                 | Unknot.component unknot == componentIndex = False --The component of the unknot should be this component
+                 | Unknot.component unknot /= componentIndex = False --The component of the unknot should be this component
                  | otherwise = True
               where
                 --Test we can lookup the indexed unknots
