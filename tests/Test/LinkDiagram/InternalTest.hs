@@ -181,7 +181,8 @@ testValidLink = testGroup "Test isValidLinkDiagram"
                                            testValidCrossingsValid,
                                            testValidEdgesValid,
                                            testValidUnknotsValid,
-                                           testValidRegionsValid
+                                           testValidRegionsValid,
+                                           testValidComponentsValid
                                           ]
                                           
 --Use the known knots and test they are valid
@@ -458,3 +459,65 @@ testValidRegionBoundariesDistinct = testCase "Boundaries of a region should be d
                                                          ]) Set.empty)
                    $ regions trefoil
         --Alter region 1 to have non-distinct boundaries
+        
+--Test that invalid components are detected
+testValidComponentsValid :: TestTree
+testValidComponentsValid = testGroup "Test that invalid components are detected" 
+                                                 [testValidComponentsUnknotRef,
+                                                  testValidComponentsEdgeRef,
+                                                  testValidComponentsUnknotComp,
+                                                  testValidComponentsPathComp,
+                                                  testValidComponentsSequentialEdges
+                                                 ]
+--Test that a link with a unknotted which contains an reference to a non existant unknot
+-- Is not valid          
+--Add a component to trefoil                                                   
+testValidComponentsUnknotRef :: TestTree
+testValidComponentsUnknotRef = testCase "The references to unknots must be valid" 
+                                               $ False @?= isValidComponents invalidTrefoil
+  where invalidTrefoil = unknot {components = newComponents}
+        newComponents = IMap.insert 10 (UnknottedComponent 10) $ components trefoil
+        --Alter by adding a unknotted compoent with non existant unknot  
+        
+--Test that a link with a path which contains an reference to a non existant edge
+-- Is not valid          
+--Add a component to trefoil                                                   
+testValidComponentsEdgeRef :: TestTree
+testValidComponentsEdgeRef = testCase "The references to edges must be valid" 
+                                               $ False @?= isValidComponents invalidTrefoil
+  where invalidTrefoil = unknot {components = newComponents}
+        newComponents = IMap.fromList [(2,PathComponent [1,2,3,4,5,6,10])]
+        --Alter by adding a non existing edge 10 to path                        
+      
+--Test that any unknot of a component of a link should index this component  
+--Alter unknot 
+testValidComponentsUnknotComp :: TestTree
+testValidComponentsUnknotComp = testCase "Should be the component of indexed unknot"
+                                               $ False @?= isValidComponents invalidTrefoil
+  where invalidTrefoil = unknot {unknots = newUnknots}
+        newUnknots = IMap.fromList [(1,Unknot 1 3 10)]
+        --Make indexed component of unknot not index component 
+        
+--Test that any edge of a path component of a link should index this component  
+--Alter trefoil
+testValidComponentsPathComp :: TestTree
+testValidComponentsPathComp = testCase "Should be the component of indexed edge"
+                                               $ False @?= isValidComponents invalidTrefoil
+  where invalidTrefoil = trefoil {edges = newEdges}
+        newEdges = IMap.fromList [(1, Edge 1 2 2 1 10),
+                         (2, Edge 2 3 5 3 10),
+                         (3, Edge 3 1 4 1 10),
+                         (4, Edge 1 2 5 2 10),
+                         (5, Edge 2 3 3 1 10),
+                         (6, Edge 3 1 5 4 10)
+                        ]
+        --Make indexed component of edge not index component 
+        
+--Test that any link with a component which is not sequential is not valid
+--Alter trefoil
+testValidComponentsSequentialEdges :: TestTree 
+testValidComponentsSequentialEdges = testCase "A paths edges should be valid" 
+                                               $ False @?= isValidComponents invalidTrefoil
+  where invalidTrefoil = unknot {components = newComponents}
+        newComponents = IMap.fromList [(2,PathComponent [1,5,4,3,2,6])]  
+        --Reorder the edges in the path of trefoil.
