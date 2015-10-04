@@ -188,7 +188,7 @@ isValidUnknots link = all isValidUnknot . IMap.assocs $ unknots link
                       | isNothing componentM = False --The component indexed shoud be in the link
                       | not $ Region.unknotInBounds leftRegion unknotIndex = False -- The unknot should bound it's left region
                       | not $ Region.unknotInBounds rightRegion unknotIndex = False -- The unknot should bound it's right region
-                      | unknotInComponent = False -- The unknot's component should be an unknot component linking to this one
+                      | not unknotInComponent = False -- The unknot's component should be an unknot component linking to this one
                       | otherwise = True
            where --Test we can lookup both left and right regions
                  -- This is wrapped in a maybe and is nothing if any of the indices fail
