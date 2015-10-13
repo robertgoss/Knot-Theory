@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 module Test.TestingInterface where
 
 import Test.SmallCheck.Series
@@ -25,7 +25,7 @@ tRolfson (TRolfson r) = r
   
 --Instance for small check.
 instance (Monad m) => Serial m TestingRolfson where
-    series = generate $ \d -> map TRolfson $ concatMap rolfsonKnotsCrossings [1..d] 
+    series = generate $ \d -> map TRolfson $ concatMap rolfsonKnotsCrossings [1..d]
      
 -- Interfaces for knot diagram
 
