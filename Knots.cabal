@@ -1,40 +1,45 @@
 name:           Knots
 version:        0.1
-cabal-version:  >=1.2
+cabal-version:  >=1.8
 build-type:     Simple
 author:         robert
 
 library
-  hs-source-dirs:  src
-  build-depends:   
+  hs-source-dirs:   src
+  build-depends:    
                    base >= 4,
                    containers,
-                   smallcheck
-  ghc-options:     -Wall
-  other-modules:   
-                   KnotMorphism
-  exposed-modules: 
+                   smallcheck,
+                   bifunctors
+  ghc-options:      -Wall
+  other-modules:    
+  exposed-modules:  
                    KnotDiagram,
+                   KnotMorphism,
+                   LinkDiagram,
+                   LinkDiagram.Component,
+                   LinkDiagram.Crossing,
+                   LinkDiagram.Edge,
+                   LinkDiagram.Internal,
+                   LinkDiagram.Region,
+                   LinkDiagram.Unknot,
                    RolfsonTable
 
-test-suite knots
+test-suite TestAll
   type:            exitcode-stdio-1.0
   ghc-options:     -Wall -rtsopts
   build-depends:   
-                   base >= 4,
-                   tasty > 0.10,
-                   tasty-hunit,
-                   HUnit,
-                   tasty-quickcheck,
-                   QuickCheck,
-                   tasty-smallcheck,
-                   smallcheck
+                  base >= 4,
+                  tasty > 0.10,
+                  tasty-hunit,
+                  HUnit,
+                  tasty-quickcheck,
+                  containers,
+                  QuickCheck,
+                  Knots,
+                  smallcheck,
+                  tasty-smallcheck
   other-modules:   
-                  KnotDiagram,
-                  KnotDiagramTest,
-                  KnotMorphism
-  hs-source-dirs:  
-                  tests,
-                  src
-  main-is:         KnotTests.hs
+  hs-source-dirs:  tests
+  main-is:         Test/TestAll.hs
 
