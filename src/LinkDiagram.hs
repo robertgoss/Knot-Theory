@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module LinkDiagram where
 
 import qualified LinkDiagram.Internal as Internal
@@ -8,17 +9,19 @@ import qualified LinkDiagram.Unknot as Unknot
 import qualified LinkDiagram.Region as Region
 import qualified LinkDiagram.Component as Component
 
+import Indices
+
 import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
 
 --Types for the various indices the constructor is not exposed so it is known
 -- that any index can not be altered outside of a link
 -- The vertices, edges, unknots, regions and components are of a link are indexed by
-newtype VertexIndex = VertexIndex Int deriving(Eq,Ord,Show)
-newtype EdgeIndex = EdgeIndex Int deriving(Eq,Ord,Show)
-newtype UnknotIndex = UnknotIndex Int deriving(Eq,Ord,Show)
-newtype RegionIndex = RegionIndex Int deriving(Eq,Ord,Show)
-newtype ComponentIndex = ComponentIndex Int deriving(Eq,Ord,Show)
+newtype VertexIndex = VertexIndex Int deriving(Eq,Ord,Show,Index)
+newtype EdgeIndex = EdgeIndex Int deriving(Eq,Ord,Show,Index)
+newtype UnknotIndex = UnknotIndex Int deriving(Eq,Ord,Show,Index)
+newtype RegionIndex = RegionIndex Int deriving(Eq,Ord,Show,Index)
+newtype ComponentIndex = ComponentIndex Int deriving(Eq,Ord,Show,Index)
 
 
 --Types of the knot aspects with the diagram's indices.
@@ -44,7 +47,7 @@ type Component = Component.Component UnknotIndex EdgeIndex
 -- the data that constructs a valid link diagram.
 --The constructor for this is not exposed.
 --The consitancy conditions are discussed below.
-data LinkDiagram = LinkDiagram Internal.LinkDiagramData
+data LinkDiagram = LinkDiagram Internal.LinkDiagramData deriving(Eq,Ord)
 
 --Get the underlying internal link diagram data from a valid link diagram
 linkDiagramData :: LinkDiagram -> Internal.LinkDiagramData
