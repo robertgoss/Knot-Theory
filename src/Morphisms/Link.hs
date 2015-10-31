@@ -53,6 +53,21 @@ identityMaps link = LinkDiagramIso {
                 identityMap :: (Index a) => Set.Set a -> IMap.IntMap a
                 identityMap set = IMap.fromList . map doubleUnwrap $ Set.toList set
                    where doubleUnwrap x = (unwrap x,x)
+                   
+--The inverse maps of a link
+inverseMaps :: LinkDiagramIsomorphismData -> LinkDiagramIsomorphismData
+inverseMaps linkMaps = LinkDiagramIso {
+                                         crossingIMap = inverseIMap (crossingIMap linkMaps),
+                                         edgeIMap = inverseIMap (edgeIMap linkMaps),
+                                         unknotIMap = inverseIMap (unknotIMap linkMaps),
+                                         regionIMap = inverseIMap (regionIMap linkMaps),
+                                         componentIMap = inverseIMap (componentIMap linkMaps)
+                                      }
+          where --Inverse of an IMap add unwrapping of index
+                inverseIMap :: (Index a) => IMap.IntMap a -> IMap.IntMap a
+                inverseIMap = IMap.fromList . map swapUnwrap . IMap.toList
+                  where swapUnwrap (x,y) = (unwrap y,unsafeWrap x) --This is fine as x comes from an unwrap
+
 --Wrapper constructor around a Link diagram isomorphism to indicate that this 
 -- Isomorphism is valid include the source and target links
 data LinkDiagramIsomorphism = LinkDiagramIsomorphism {
@@ -98,3 +113,10 @@ instance Morphism LinkDiagram LinkDiagramIsomorphism where
                                 targetLink = targetLink iso1,
                                 mappingData = combineMaps (mappingData iso1) (mappingData iso2)
                             }
+                            
+instance Isomorphism LinkDiagram LinkDiagramIsomorphism where
+  invert iso = LinkDiagramIsomorphism {
+                   sourceLink = targetLink iso,
+                   targetLink = sourceLink iso,
+                   mappingData = inverseMaps (mappingData iso)
+               }
