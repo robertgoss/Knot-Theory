@@ -3,6 +3,7 @@
 module RolfsonTable where
 
 import KnotDiagram
+import Encodings.PlanarDiagram
 
 import Data.Maybe(fromJust)
 
