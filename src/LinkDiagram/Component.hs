@@ -22,3 +22,14 @@ instance Bifunctor Component where
 indexChange :: (unknotIndex1 -> unknotIndex2)  -> (edgeIndex1->edgeIndex2)
                -> Component unknotIndex1 edgeIndex1 -> Component unknotIndex2 edgeIndex2
 indexChange = bimap
+
+--Get if a component is a path component
+isPath :: Component unknotIndex edgeIndex -> Bool
+isPath (PathComponent _) = True
+isPath _ = False
+
+--Unsafe given a component gets the edges if it is a path component
+--Otherwise it will fail
+pathUnsafe :: Component unknotIndex edgeIndex -> [edgeIndex]
+pathUnsafe (PathComponent es) = es
+pathUnsafe _ = error "Path unsafe called on non path component"

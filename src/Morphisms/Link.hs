@@ -3,12 +3,15 @@ module Morphisms.Link where
 
 import qualified Data.IntMap as IMap
 import qualified Data.Set as Set
-
+import Data.Maybe(mapMaybe)
+import Data.List(inits,tails)
 
 import Morphisms.Category
 import LinkDiagram
 import Indices
 
+import qualified LinkDiagram.Internal as Int
+import qualified LinkDiagram.Component as Component
 
 
 --The datatype test of a isomorphism of link diagrams
@@ -71,31 +74,31 @@ inverseMaps linkMaps = LinkDiagramIso {
 --Wrapper constructor around a Link diagram isomorphism to indicate that this 
 -- Isomorphism is valid include the source and target links
 data LinkDiagramIsomorphism = LinkDiagramIsomorphism {
-  mappingData :: LinkDiagramIsomorphismData,
   sourceLink :: LinkDiagram,
-  targetLink :: LinkDiagram
+  targetLink :: LinkDiagram,
+  mappingData :: LinkDiagramIsomorphismData
 } deriving(Eq,Ord)
 
 --Get underlying data from a diagram isomorphism              
 linkDiagramIsomorphismData :: LinkDiagramIsomorphism -> LinkDiagramIsomorphismData
-linkDiagramIsomorphismData (LinkDiagramIsomorphism d _ _) = d 
+linkDiagramIsomorphismData (LinkDiagramIsomorphism _ _ d) = d 
 
 --Mappers to map indices from one link to another
 --The indices are not checked that they are in the correct source link
 crossingMap :: LinkDiagramIsomorphism -> VertexIndex -> VertexIndex
-crossingMap (LinkDiagramIsomorphism d _ _) vIndex = crossingIMap d IMap.! (unwrap vIndex)
+crossingMap (LinkDiagramIsomorphism _ _ d) vIndex = crossingIMap d IMap.! (unwrap vIndex)
 
 edgeMap :: LinkDiagramIsomorphism -> EdgeIndex -> EdgeIndex
-edgeMap (LinkDiagramIsomorphism d _ _) eIndex = edgeIMap d IMap.! (unwrap eIndex)
+edgeMap (LinkDiagramIsomorphism _ _ d) eIndex = edgeIMap d IMap.! (unwrap eIndex)
 
 unknotMap :: LinkDiagramIsomorphism -> UnknotIndex -> UnknotIndex
-unknotMap (LinkDiagramIsomorphism d _ _) uIndex = unknotIMap d IMap.! (unwrap uIndex)
+unknotMap (LinkDiagramIsomorphism _ _ d) uIndex = unknotIMap d IMap.! (unwrap uIndex)
 
 regionMap :: LinkDiagramIsomorphism -> RegionIndex -> RegionIndex
-regionMap (LinkDiagramIsomorphism d _ _) rIndex = regionIMap d IMap.! (unwrap rIndex)
+regionMap (LinkDiagramIsomorphism _ _ d) rIndex = regionIMap d IMap.! (unwrap rIndex)
 
 componentMap :: LinkDiagramIsomorphism -> ComponentIndex -> ComponentIndex
-componentMap (LinkDiagramIsomorphism d _ _) cIndex = componentIMap d IMap.! (unwrap cIndex)
+componentMap (LinkDiagramIsomorphism _ _ d) cIndex = componentIMap d IMap.! (unwrap cIndex)
 
 --Instances 
 --Make an instance of both morphism and isomorphism from category.
@@ -120,3 +123,96 @@ instance Isomorphism LinkDiagram LinkDiagramIsomorphism where
                    targetLink = sourceLink iso,
                    mappingData = inverseMaps (mappingData iso)
                }
+               
+--Get the number of isomorphisms between 2 link diagrams
+-- This is mapping data between two link diagrams that
+--Each map is a bijection.
+--Obeys all adjaceny rules.
+--We first take a mapping of components and then alignments of the edges in 
+-- each components and then construct all maps from this alignment then filter on
+-- adjacency rules
+isomorphismsBetweenLinkDiagrams :: LinkDiagram -> LinkDiagram -> [LinkDiagramIsomorphism]
+isomorphismsBetweenLinkDiagrams link1 link2 = validIsos
+  where alignments = getAlignmentsBetweenLinkDiagrams linkD1 linkD2
+        potentialMappings = mapMaybe (constructMappingsFromAlignment linkD1 linkD2) alignments
+        validMappings = filter (validAdjacency linkD1 linkD2) potentialMappings
+        validIsos = map (LinkDiagramIsomorphism link1 link2) validMappings
+        linkD1 = linkDiagramData link1
+        linkD2 = linkDiagramData link2
+    
+
+--Sub computations for isomorphismsBetweenLinkDiagrams
+--Construct an alignment between 2 links consists of a bijection of path and 
+-- unknot components and for each path component an alignment which is a 
+-- bijection of the cycles of edges in the paths. If the the mapped paths components
+-- have different numbers of edges it is not valid.
+type LinkAlignment = (IMap.IntMap Int.ComponentIndex, IMap.IntMap Int.EdgeIndex)
+
+getAlignmentsBetweenLinkDiagrams :: Int.LinkDiagramData -> Int.LinkDiagramData -> [LinkAlignment]
+getAlignmentsBetweenLinkDiagrams linkData1 linkData2 = concatMap makeAlignmentsFromCMap componentMaps
+  where componentIndices1 = IMap.keys $ Int.components linkData1
+        componentIndices2 = IMap.keys $ Int.components linkData2
+        --Get all bijections between component indices
+        -- Taking unknots to unknots and paths to paths with the same number of edges
+        componentMaps = allValidBijections validComponentMap componentIndices1 componentIndices2
+        --See if the component map is valid must be of the same type after lookup
+        -- path components must be the same length
+        validComponentMap index1 index2
+          = case (Int.components linkData1 IMap.! index1,Int.components linkData2 IMap.! index2) of
+                  (Component.UnknottedComponent _,Component.UnknottedComponent _) -> True
+                  (Component.PathComponent es1,Component.PathComponent es2) -> length es1 == length es2
+                  _ -> False
+        --Given a validation function that says if 2 elements can be connected find all valid bijections
+        allValidBijections :: (Int -> Int -> Bool) -> [Int] -> [Int] -> [IMap.IntMap Int]
+        allValidBijections _ [] [] = [IMap.empty]
+        allValidBijections _ _ [] = [] --Mapping to the empty set from non empty cannot be bijective
+        allValidBijections _ [] _ = [] --Mapping from the empty set to non empty cannot be bijective
+        allValidBijections validation (sourceElem:rest) targetElems = concatMap partialValidBijections validTargets
+          where validTargets = filter (validation sourceElem) targetElems
+                partialValidBijections targetElem = map (IMap.insert sourceElem targetElem) partials
+                   where remainingTargets = filter (/= targetElem) targetElems
+                         partials = allValidBijections validation rest remainingTargets
+        --Given a valid component map construct all alignments by getting all alignments of edges
+        makeAlignmentsFromCMap :: IMap.IntMap Int.ComponentIndex -> [LinkAlignment]
+        makeAlignmentsFromCMap componentMapping = map alignmentFromPathAlign pathAligns
+          where pathComponentIndices = filter (Component.isPath . (IMap.!) (Int.components linkData1)) $ IMap.keys componentMapping
+                --Pairs of the edges associated to each path mapped pair of path components
+                pathPairs = map pathPair pathComponentIndices
+                pathPair index1 = (Component.pathUnsafe component1, Component.pathUnsafe component2)
+                   where index2 = (IMap.!) componentMapping (unwrap index1)
+                         component1 = (IMap.!) (Int.components linkData1) (unwrap index1)
+                         component2 = (IMap.!) (Int.components linkData2) (unwrap index2)
+                --Get all products of alignments of edges
+                pathAligns :: [[[(Int.EdgeIndex, Int.EdgeIndex)]]]
+                pathAligns = allProducts $ map alignments pathPairs
+                --Construct a alignment from a path alignment
+                --Make an edge map from each path alignment then take the union
+                alignmentFromPathAlign :: [[(Int.EdgeIndex, Int.EdgeIndex)]] -> LinkAlignment
+                alignmentFromPathAlign pathAlign = (componentMapping, edgeMapping)
+                  where edgeMapping = IMap.unions $ map (IMap.fromList . map indexUnwrap) pathAlign
+                        indexUnwrap (i1,i2) = (unwrap i1,i2)
+                --Given a list of elements take all combinations of elements in these lists
+                allProducts :: [[a]] -> [[a]]
+                allProducts [] = [[]]
+                allProducts (xs:rest) = [x:prod | x <- xs, prod <- allProducts rest ]
+        --Given 2 equal lengths lists get the list of alignments
+        -- So pairs which respect cyclic ordering
+        alignments :: ([a],[a]) -> [[(a,a)]]
+        alignments (xs,ys) = map (zip xs) $ tail cycles
+          where cycles = zipWith (++) (tails ys) (inits ys) --get all presentations of ys respecting cyclic ordering
+        
+
+
+
+--Given an alignment construct a mapping which restricts to this alignment 
+-- on just the edge and component maps
+--If this cannot be done return Nothing
+constructMappingsFromAlignment :: Int.LinkDiagramData -> Int.LinkDiagramData 
+                                          -> LinkAlignment -> Maybe LinkDiagramIsomorphismData
+constructMappingsFromAlignment linkData1 linkData2 (componentMap, edgeMap) = undefined
+  where 
+
+
+--Given a set of maps check all the adjacency relations hold
+validAdjacency :: Int.LinkDiagramData -> Int.LinkDiagramData -> LinkDiagramIsomorphismData -> Bool
+validAdjacency linkData1 linkData2 mappingData = undefined
