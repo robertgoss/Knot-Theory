@@ -2,6 +2,7 @@
 module Morphisms.Link where
 
 import qualified Data.IntMap as IMap
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe(mapMaybe)
 import Data.List(inits,tails)
@@ -12,7 +13,9 @@ import Indices
 
 import qualified LinkDiagram.Internal as Int
 import qualified LinkDiagram.Component as Component
-
+import qualified LinkDiagram.Edge as Edge
+import qualified LinkDiagram.Unknot as Unknot
+import qualified LinkDiagram.Region as Region
 
 --The datatype test of a isomorphism of link diagrams
 --Is a map of all the aspects of a link.
@@ -209,10 +212,63 @@ getAlignmentsBetweenLinkDiagrams linkData1 linkData2 = concatMap makeAlignmentsF
 --If this cannot be done return Nothing
 constructMappingsFromAlignment :: Int.LinkDiagramData -> Int.LinkDiagramData 
                                           -> LinkAlignment -> Maybe LinkDiagramIsomorphismData
-constructMappingsFromAlignment linkData1 linkData2 (componentMap, edgeMap) = undefined
-  where 
-
+constructMappingsFromAlignment linkData1 linkData2 (componentIMap', edgeIMap') = Just iso
+  where --The the induced map of edges and components from the maps of indices
+        componentAssocs = map getBothComps $ IMap.toList componentIMap'
+        getBothComps (i1,i2) = ((Int.components linkData1 IMap.! i1), (Int.components linkData2 IMap.! i2))
+        edgeAssocs = map getBothEdges $ IMap.toList edgeIMap'
+        getBothEdges (i1,i2) = (((Int.edges linkData1) IMap.! i1), (Int.edges linkData2 IMap.! i2))
+        --Use the component map to make the map of unknots
+        --Get the components of unknot indices and pull out index map
+        unknotIMap' = IMap.fromList $ mapMaybe unknotPair componentAssocs
+        --Wrap in maybe to only deal with unknot components
+        --Assumed well formed map so unknotUnsafe is ok. 
+        unknotPair (c1,c2) = if Component.isUnknot c1 then Just (Component.unknotUnsafe c1,Component.unknotUnsafe c2)
+                                                      else Nothing
+        unknotAssocs = map getBothUnknots $ IMap.toList unknotIMap'
+        getBothUnknots (i1,i2) = (((Int.unknots linkData1) IMap.! i1), (Int.unknots linkData2 IMap.! i2))
+        --Every region meets at least one edge or unknot use this to construct
+        --the region map
+        regionEdgeIMap = IMap.fromList $  concatMap edgePairToRegions edgeAssocs
+        regionUnknotIMap = IMap.fromList $  concatMap unknotPairToRegions unknotAssocs
+        regionIMap' = IMap.union regionEdgeIMap regionUnknotIMap
+        --Given a mapping of 2 edges / unknots the left/right regions should map.
+        edgePairToRegions (edge1,edge2) = [(Edge.leftRegion edge1,Edge.leftRegion edge2)
+                                           ,(Edge.rightRegion edge1,Edge.rightRegion edge2)]
+        unknotPairToRegions (u1,u2) = [(Unknot.leftRegion u1,Unknot.leftRegion u2),
+                                       (Unknot.rightRegion u1,Unknot.rightRegion u2)]
+        --Every crossing must meet at least one edge
+        crossingIMap' = IMap.fromList $  concatMap edgePairToCrossings edgeAssocs
+        --Given 2 mapped edges the start/end crossings should map.
+        edgePairToCrossings (edge1,edge2) = [(Edge.startCrossing edge1,Edge.startCrossing edge2),
+                                             (Edge.endCrossing edge1,Edge.endCrossing edge2)]
+        --Construct link diagram isomorphism from these maps
+        iso = LinkDiagramIso {
+          crossingIMap = wrapIMap crossingIMap',
+          edgeIMap = wrapIMap edgeIMap',
+          unknotIMap = wrapIMap unknotIMap',
+          regionIMap = wrapIMap regionIMap',
+          componentIMap = wrapIMap componentIMap'
+        }
+        --Wrap maps to linkdiagram index
+        wrapIMap :: (Index index) => IMap.IntMap Int -> IMap.IntMap index
+        wrapIMap = IMap.map Indices.unsafeWrap
 
 --Given a set of maps check all the adjacency relations hold
 validAdjacency :: Int.LinkDiagramData -> Int.LinkDiagramData -> LinkDiagramIsomorphismData -> Bool
-validAdjacency linkData1 linkData2 mappingData = undefined
+validAdjacency linkData1 linkData2 mappingData' = allValidCrossing && allValidRegion
+  where --Maps of indices induced from mapping data
+        mapRegionIndex rIn = Indices.unwrap $ regionIMap mappingData' IMap.! rIn
+        mapUnknotIndex uIn = Indices.unwrap $ unknotIMap mappingData' IMap.! uIn
+        mapEdgeIndex eIn = Indices.unwrap $ edgeIMap mappingData' IMap.! eIn
+        mapCrossingIndex cIn = Indices.unwrap $ crossingIMap mappingData' IMap.! cIn
+        --Crossing is valid if mapping the crossing data is the same as the mapped crossing
+        allValidCrossing = all validCrossing . IMap.keys $ Int.crossings linkData1 
+        validCrossing cIn = mapCrossingData cIn == mapCrossing cIn
+        mapCrossingData cIn = fmap mapEdgeIndex $ Int.crossings linkData1 IMap.! cIn
+        mapCrossing cIn = Int.crossings linkData2 IMap.! (mapCrossingIndex cIn)
+        --Region is valid if mapping the region data is the same as the mapped region
+        allValidRegion = all validRegion . IMap.keys $ Int.regions linkData1 
+        validRegion rIn = mapRegionData rIn == mapRegion rIn
+        mapRegionData rIn = Region.indexChange mapEdgeIndex mapUnknotIndex $ Int.regions linkData1 IMap.! rIn
+        mapRegion rIn = Int.regions linkData2 IMap.! (mapRegionIndex rIn)

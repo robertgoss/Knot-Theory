@@ -28,8 +28,19 @@ isPath :: Component unknotIndex edgeIndex -> Bool
 isPath (PathComponent _) = True
 isPath _ = False
 
+--Get if a component is a path component
+isUnknot :: Component unknotIndex edgeIndex -> Bool
+isUnknot (UnknottedComponent _) = True
+isUnknot _ = False
+
 --Unsafe given a component gets the edges if it is a path component
 --Otherwise it will fail
 pathUnsafe :: Component unknotIndex edgeIndex -> [edgeIndex]
 pathUnsafe (PathComponent es) = es
 pathUnsafe _ = error "Path unsafe called on non path component"
+
+--Unsafe given a component gets the edges if it is a path component
+--Otherwise it will fail
+unknotUnsafe :: Component unknotIndex edgeIndex -> unknotIndex
+unknotUnsafe (UnknottedComponent index) = index
+unknotUnsafe _ = error "Unknot unsafe called on non unknot component"
